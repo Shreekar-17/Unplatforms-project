@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     )
     api_prefix: str = "/api"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    secret_key: str = Field(
+        default="your-secret-key-here-change-in-production-min-32-chars",
+        description="Secret key for JWT token signing"
+    )
 
     class Config:
         env_file = ".env"
