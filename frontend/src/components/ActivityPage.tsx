@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { useListAllActivitiesQuery, useListTasksQuery } from '../features/tasks/tasksApi'
 import { Activity } from '../features/tasks/types'
 
-type ActivityFilter = 'all' | 'created' | 'updated' | 'moved' | 'commented'
+type ActivityFilter = 'all' | 'created' | 'updated' | 'moved' | 'commented' | 'deleted'
 
 function getInitials(name: string): string {
     return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -35,10 +35,9 @@ function formatRelativeTime(dateStr: string): string {
 
 const activityTypeIcon: Record<string, string> = {
     created: '🆕',
-    updated: '✏️',
-    moved: '➡️',
     commented: '💬',
     bulk_updated: '📦',
+    deleted: '🗑️',
 }
 
 const activityTypeColor: Record<string, string> = {
@@ -47,6 +46,7 @@ const activityTypeColor: Record<string, string> = {
     moved: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
     commented: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
     bulk_updated: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+    deleted: 'bg-red-500/15 text-red-400 border-red-500/30',
 }
 
 function describeActivity(activity: Activity): string {
@@ -59,6 +59,7 @@ function describeActivity(activity: Activity): string {
             const to = payload.new_status || '—'
             return `Moved from ${from} → ${to}`
         }
+        case 'bulk_updated':
         case 'updated': {
             const changes: string[] = []
             if (payload.new_priority) {
@@ -77,8 +78,8 @@ function describeActivity(activity: Activity): string {
         }
         case 'commented':
             return payload.body || 'Added a comment'
-        case 'bulk_updated':
-            return 'Bulk updated tasks'
+        case 'deleted':
+            return payload.title ? `Deleted task "${payload.title}"` : 'Deleted a task'
         default:
             return type
     }
@@ -236,11 +237,13 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                                                             </span>
                                                         </div>
 
-                                                        {/* Task reference */}
-                                                        {taskInfo && (
+                                                        {/* Task reference - show even if deleted (using payload title if needed) */}
+                                                        {(taskInfo || activity.payload.title) && activity.type !== 'deleted' && (
                                                             <div className="text-[11px] text-gray-500 mb-1 flex items-center gap-1">
                                                                 <span className="text-gray-600">on</span>
-                                                                <span className="text-indigo-400 font-medium truncate">{taskInfo.title}</span>
+                                                                <span className={clsx('font-medium truncate', taskInfo ? 'text-indigo-400' : 'text-gray-400 italic')}>
+                                                                    {taskInfo ? taskInfo.title : activity.payload.title}
+                                                                </span>
                                                             </div>
                                                         )}
 

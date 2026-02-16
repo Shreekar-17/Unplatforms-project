@@ -1,12 +1,12 @@
 import { TaskCard } from './TaskCard'
-import { Task } from '../features/tasks/types'
+import { Task, TabKey } from '../features/tasks/types'
 import { Droppable } from '@hello-pangea/dnd'
 import type { SortMode } from './Board'
 
 interface ColumnProps {
   title: string
   tasks: Task[]
-  onTaskClick: (task: Task) => void
+  onTaskClick: (task: Task, initialTab?: TabKey) => void
   color: string
   isDragDisabled: boolean
   sortMode: SortMode
@@ -70,7 +70,7 @@ export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortM
                   key={task.id}
                   task={task}
                   index={index}
-                  onClick={() => onTaskClick(task)}
+                  onClick={(tab) => onTaskClick(task, tab)}
                   isDragDisabled={isDragDisabled}
                   isSelected={selectedIds.has(task.id)}
                   isSelectionMode={isSelectionMode}

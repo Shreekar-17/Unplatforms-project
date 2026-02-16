@@ -1,5 +1,7 @@
-import { Task, Priority } from '../features/tasks/types'
+import { Task, Priority, TabKey } from '../features/tasks/types'
 import { useUpdateTaskMutation } from '../features/tasks/tasksApi'
+import { useSelector } from 'react-redux'
+import { selectCurrentUser } from '../features/auth/authSlice'
 import clsx from 'clsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { useState, useRef, useEffect } from 'react'
@@ -7,7 +9,7 @@ import { useState, useRef, useEffect } from 'react'
 interface TaskCardProps {
   task: Task
   index: number
-  onClick?: () => void
+  onClick?: (tab?: TabKey) => void
   isDragDisabled: boolean
   isSelected?: boolean
   isSelectionMode?: boolean
@@ -186,6 +188,8 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
     }
   }
 
+
+
   return (
     <Draggable draggableId={task.id} index={index} isDragDisabled={isDragDisabled}>
       {(provided, snapshot) => (
@@ -275,54 +279,81 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
             {task.title}
           </div>
 
+          {/* Assignee below task name */}
+          <div className="flex items-center gap-2 min-h-[20px]">
+            {showOwnerInput ? (
+              <OwnerInput
+                currentOwner={task.owner || ''}
+                onSubmit={handleOwnerChange}
+                onClose={() => setShowOwnerInput(false)}
+              />
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowOwnerInput(true)
+                }}
+                className="flex items-center gap-1.5 hover:bg-board-card-hover px-1.5 py-0.5 -ml-1.5 rounded transition group/owner"
+              >
+                {task.owner ? (
+                  <>
+                    <div className={clsx('w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white', getAvatarColor(task.owner))}>
+                      {getInitials(task.owner)}
+                    </div>
+                    <span className="text-[11px] text-gray-400 group-hover/owner:text-gray-300 transition-colors truncate max-w-[120px]">
+                      {task.owner}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-gray-600 group-hover/owner:text-gray-500 transition-colors">
+                    Assignee...
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+
           {/* Description preview */}
           {task.description && (
-            <div className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
+            <div className="text-[11px] text-gray-500 leading-relaxed line-clamp-2 mt-1">
               {task.description}
             </div>
           )}
 
-          {/* Footer: owner, estimate, date */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2">
-              {showOwnerInput ? (
-                <OwnerInput
-                  currentOwner={task.owner || ''}
-                  onSubmit={handleOwnerChange}
-                  onClose={() => setShowOwnerInput(false)}
-                />
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowOwnerInput(true)
-                  }}
-                  title={task.owner ? `Click to reassign (${task.owner})` : 'Click to assign'}
-                  className="flex items-center gap-1 hover:opacity-80 transition"
-                >
-                  {task.owner ? (
-                    <div className={clsx('w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white', getAvatarColor(task.owner))}>
-                      {getInitials(task.owner)}
-                    </div>
-                  ) : (
-                    <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-600 hover:border-indigo-500 hover:text-indigo-400 transition">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              )}
+          {/* Footer: Date | Estimate | Icons */}
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-board-border/50">
+            <div className="flex items-center gap-3 text-[10px] text-gray-600">
               {task.estimate && (
-                <span className="text-[11px] text-gray-500">{task.estimate}h est.</span>
+                <span>{task.estimate}h est.</span>
               )}
+              <span>{formatRelativeDate(task.created_at)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600">
-                📅 {formatRelativeDate(task.created_at)}
-              </span>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); onClick?.('details') }}
+                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
+                title="View Details"
+              >
+                <span className="text-[13px]">📄</span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onClick?.('comments') }}
+                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
+                title="Comments"
+              >
+                <span className="text-[13px]">💬</span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onClick?.('activity') }}
+                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
+                title="Activity"
+              >
+                <span className="text-[13px]">📋</span>
+              </button>
             </div>
           </div>
+
         </div>
       )}
     </Draggable>

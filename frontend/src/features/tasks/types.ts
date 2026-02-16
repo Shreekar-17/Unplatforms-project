@@ -19,7 +19,7 @@ export interface Task {
 export interface Activity {
   id: string
   task_id: string
-  type: 'created' | 'updated' | 'moved' | 'commented' | 'bulk_updated'
+  type: 'created' | 'updated' | 'moved' | 'commented' | 'bulk_updated' | 'deleted'
   payload: Record<string, any>
   actor: string
   activity_seq: number
@@ -34,3 +34,5 @@ export interface Comment {
   created_at: string
   version: number
 }
+
+export type TabKey = 'details' | 'comments' | 'activity'

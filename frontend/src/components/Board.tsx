@@ -1,4 +1,4 @@
-import { Task, Status, Priority } from '../features/tasks/types'
+import { Task, Status, Priority, TabKey } from '../features/tasks/types'
 import { Column } from './Column'
 import { DragDropContext, DropResult } from '@hello-pangea/dnd'
 import { useReorderTaskMutation, useBulkUpdateTasksMutation, tasksApi } from '../features/tasks/tasksApi'
@@ -11,7 +11,7 @@ export type SortMode = 'manual' | 'priority' | 'created'
 
 interface BoardProps {
   columns: Record<string, Task[]>
-  onTaskClick: (task: Task) => void
+  onTaskClick: (task: Task, initialTab?: TabKey) => void
   sortMode: SortMode
 }
 

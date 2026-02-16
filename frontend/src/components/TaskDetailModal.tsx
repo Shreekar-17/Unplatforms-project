@@ -12,6 +12,7 @@ import { selectCurrentUser } from '../features/auth/authSlice'
 
 interface TaskDetailModalProps {
   task: Task
+  initialTab?: TabKey
   onClose: () => void
 }
 
@@ -396,8 +397,8 @@ function ActivityTab({ task }: { task: Task }) {
 
 // --- Main Modal ---
 
-export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>('details')
+export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: 'details', label: 'Details', icon: '📝' },

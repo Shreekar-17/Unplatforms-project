@@ -1,5 +1,5 @@
 import { useListTasksQuery, useCreateTaskMutation } from '../features/tasks/tasksApi'
-import { Task, Priority } from '../features/tasks/types'
+import { Task, Priority, TabKey } from '../features/tasks/types'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -14,6 +14,7 @@ export default function BoardPage() {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState<Priority>('P2')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [initialTab, setInitialTab] = useState<TabKey>('details')
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -195,10 +196,17 @@ export default function BoardPage() {
           </div>
         </div>
       ) : (
-        <Board columns={columns} onTaskClick={setSelectedTask} sortMode={sortMode} />
+        <Board
+          columns={columns}
+          onTaskClick={(task, tab) => {
+            setSelectedTask(task)
+            setInitialTab(tab || 'details')
+          }}
+          sortMode={sortMode}
+        />
       )}
 
-      {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />}
+      {selectedTask && <TaskDetailModal task={selectedTask} initialTab={initialTab} onClose={() => setSelectedTask(null)} />}
     </div>
   )
 }

@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-ActivityType = Literal["created", "updated", "moved", "commented", "bulk_updated"]
+ActivityType = Literal["created", "updated", "moved", "commented", "bulk_updated", "deleted"]
 
 
 class ActivityRead(BaseModel):
