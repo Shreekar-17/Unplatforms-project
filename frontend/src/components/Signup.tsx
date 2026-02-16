@@ -10,7 +10,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [signup, { isLoading }] = useSignupMutation();
@@ -18,12 +18,12 @@ export default function Signup() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
       return;
     }
-    
+
     try {
       const user = await signup({
         email,
@@ -31,24 +31,37 @@ export default function Signup() {
         password,
         full_name: fullName || undefined,
       }).unwrap();
-      
+
       // Auto-login after signup
-      const loginResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/login`, {
+      const loginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        // credentials: 'include' is default for same-origin (which proxy makes it), but adding it doesn't hurt
         body: JSON.stringify({ username: email, password }),
       });
-      
+
       if (!loginResponse.ok) {
         throw new Error('Auto-login failed after signup');
       }
-      
-      const { access_token } = await loginResponse.json();
-      
-      dispatch(setCredentials({ user, token: access_token }));
-      navigate('/');
+
+      // We don't get a token back anymore, just a success message
+      // Now fetch the user data to update the store
+      const userResponse = await fetch('/api/auth/me', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        dispatch(setCredentials({ user: userData }));
+        navigate('/');
+      } else {
+        // Fallback if me fetch fails
+        navigate('/login');
+      }
     } catch (err: any) {
       console.error('Signup error:', err);
       if (err?.data?.detail) {
@@ -150,7 +163,7 @@ export default function Signup() {
               {isLoading ? 'Creating account...' : 'Sign up'}
             </button>
           </div>
-          
+
           <div className="text-center">
             <button
               type="button"

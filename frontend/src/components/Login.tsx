@@ -8,7 +8,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [login, { isLoading }] = useLoginMutation();
@@ -16,29 +16,29 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     try {
-      const response = await login({ username, password }).unwrap();
-      
-      // Store the token temporarily to fetch user data
-      const token = response.access_token;
-      dispatch(setCredentials({ user: null as any, token }));
-      
-      // Fetch user data
-      const userResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/me`, {
+      await login({ username, password }).unwrap();
+
+      // Fetch user data (cookies will be sent automatically)
+      // We can use the existing useGetMeQuery hook if we refactor, but here we can just call the endpoint or rely on a separate fetch
+      // Better: Since we successfully logged in, we can dispatch a thunk or just let the App component handle the "me" check if we redirect?
+      // Actually, for immediate feedback, let's fetch 'me' here.
+
+      const userResponse = await fetch('/api/auth/me', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Accept': 'application/json'
         }
       });
-      
+
       if (!userResponse.ok) {
         throw new Error('Failed to fetch user data');
       }
-      
+
       const user = await userResponse.json();
-      
-      // Update with full credentials
-      dispatch(setCredentials({ user, token }));
+
+      // Update with user data
+      dispatch(setCredentials({ user }));
       navigate('/');
     } catch (err: any) {
       console.error('Login error:', err);
@@ -113,7 +113,7 @@ export default function Login() {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-          
+
           <div className="text-center">
             <button
               type="button"
