@@ -10,11 +10,14 @@ interface ColumnProps {
   color: string
   isDragDisabled: boolean
   sortMode: SortMode
+  selectedIds: Set<string>
+  isSelectionMode: boolean
+  onToggleSelect: (taskId: string) => void
 }
 
 const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 }
 
-export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortMode }: ColumnProps) {
+export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortMode, selectedIds, isSelectionMode, onToggleSelect }: ColumnProps) {
   const sortedTasks = [...tasks].sort((a, b) => {
     if (sortMode === 'priority') {
       const pDiff = (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)
@@ -69,6 +72,9 @@ export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortM
                   index={index}
                   onClick={() => onTaskClick(task)}
                   isDragDisabled={isDragDisabled}
+                  isSelected={selectedIds.has(task.id)}
+                  isSelectionMode={isSelectionMode}
+                  onToggleSelect={onToggleSelect}
                 />
               ))
             )}

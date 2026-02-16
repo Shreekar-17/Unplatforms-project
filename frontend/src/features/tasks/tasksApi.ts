@@ -93,6 +93,24 @@ export const tasksApi = api.injectEndpoints({
         { type: 'Activity', id: 'GLOBAL' },
       ],
     }),
+    bulkUpdateTasks: build.mutation<
+      Task[],
+      { task_ids: string[]; status?: string; priority?: string; owner?: string; delete?: boolean }
+    >({
+      query: (body) => ({
+        url: '/tasks/bulk',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }, { type: 'Activity', id: 'GLOBAL' }],
+    }),
+    deleteTask: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/tasks/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }, { type: 'Activity', id: 'GLOBAL' }],
+    }),
   }),
 })
 
@@ -105,4 +123,7 @@ export const {
   useListAllActivitiesQuery,
   useGetTaskCommentsQuery,
   useCreateCommentMutation,
+  useBulkUpdateTasksMutation,
+  useDeleteTaskMutation,
 } = tasksApi
+

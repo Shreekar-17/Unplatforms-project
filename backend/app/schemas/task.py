@@ -52,3 +52,12 @@ class ReorderRequest(BaseModel):
     new_status: Optional[str] = None
     new_ordering_index: float
     if_match: int
+
+
+class BulkUpdateRequest(BaseModel):
+    task_ids: list[uuid.UUID]
+    status: Optional[Status] = None
+    priority: Optional[Priority] = None
+    owner: Optional[str] = None
+    delete: bool = False
+
