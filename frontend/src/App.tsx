@@ -6,6 +6,7 @@ import Login from './components/Login'
 import Signup from './components/Signup'
 import BoardPage from './components/BoardPage'
 import ActivityPage from './components/ActivityPage'
+import MembersPage from './components/MembersPage'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
@@ -65,6 +66,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ActivityPage onBack={() => window.history.back()} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/members"
+            element={
+              <ProtectedRoute>
+                <MembersPage />
               </ProtectedRoute>
             }
           />

@@ -13,7 +13,7 @@ const NAV_ITEMS = [
     { label: 'Board', path: '/', icon: 'content_paste' },
     { label: 'Priority Queue', path: '#', icon: 'format_list_numbered', disabled: true },
     { label: 'Timeline', path: '/activity', icon: 'schedule' },
-    { label: 'Members', path: '#', icon: 'group', disabled: true },
+    { label: 'Members', path: '/members', icon: 'group' },
     { label: 'Settings', path: '#', icon: 'settings', disabled: true },
 ]
 

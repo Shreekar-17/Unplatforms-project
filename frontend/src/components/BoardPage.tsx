@@ -1,11 +1,12 @@
 import { useListTasksQuery, useCreateTaskMutation } from '../features/tasks/tasksApi'
-import { Task, Priority, TabKey } from '../features/tasks/types'
+import { Task, Priority, Status, TabKey } from '../features/tasks/types'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { selectCurrentUser, logout } from '../features/auth/authSlice'
 import { Board, SortMode } from './Board'
 import { TaskDetailModal } from './TaskDetailModal'
+import { CreateTaskModal } from './CreateTaskModal'
 import { Sidebar } from './Sidebar'
 import clsx from 'clsx'
 
@@ -17,6 +18,7 @@ export default function BoardPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [initialTab, setInitialTab] = useState<TabKey>('details')
   const [sortMode, setSortMode] = useState<SortMode>('manual')
+  const [createModalStatus, setCreateModalStatus] = useState<Status | null>(null)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const currentUser = useSelector(selectCurrentUser)
@@ -152,6 +154,12 @@ export default function BoardPage() {
         </div>
 
         {selectedTask && <TaskDetailModal task={selectedTask} initialTab={initialTab} onClose={() => setSelectedTask(null)} />}
+        {createModalStatus && (
+          <CreateTaskModal
+            initialStatus={createModalStatus}
+            onClose={() => setCreateModalStatus(null)}
+          />
+        )}
       </div>
     </div>
   )

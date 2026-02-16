@@ -13,11 +13,12 @@ interface ColumnProps {
   selectedIds: Set<string>
   isSelectionMode: boolean
   onToggleSelect: (taskId: string) => void
+  onAdd: () => void
 }
 
 const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 }
 
-export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortMode, selectedIds, isSelectionMode, onToggleSelect }: ColumnProps) {
+export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortMode, selectedIds, isSelectionMode, onToggleSelect, onAdd }: ColumnProps) {
   const sortedTasks = [...tasks].sort((a, b) => {
     if (sortMode === 'priority') {
       const pDiff = (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)
@@ -57,7 +58,7 @@ export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortM
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2 px-2 pb-4 min-h-[200px] rounded-lg transition-colors duration-200 ${snapshot.isDraggingOver ? 'column-drag-over' : ''
+            className={`flex-1 space-y-2 px-2 pb-4 min-h-[100px] rounded-lg transition-colors duration-200 ${snapshot.isDraggingOver ? 'column-drag-over' : ''
               }`}
           >
             {sortedTasks.length === 0 ? (
@@ -82,6 +83,17 @@ export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortM
           </div>
         )}
       </Droppable>
+
+      {/* Add Task Button */}
+      <button
+        onClick={onAdd}
+        className="mx-2 mt-2 py-2 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 hover:text-gray-300 hover:bg-board-card rounded-lg transition-colors group"
+      >
+        <svg className="w-4 h-4 text-gray-600 group-hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Add Task
+      </button>
     </div>
   )
 }

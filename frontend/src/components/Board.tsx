@@ -13,6 +13,7 @@ interface BoardProps {
   columns: Record<string, Task[]>
   onTaskClick: (task: Task, initialTab?: TabKey) => void
   sortMode: SortMode
+  onAdd: (status: Status) => void
 }
 
 const COLUMN_ORDER: Status[] = ['Backlog', 'Ready', 'In Progress', 'Review', 'Done']
@@ -72,7 +73,7 @@ function ActionDropdown({
   )
 }
 
-export function Board({ columns, onTaskClick, sortMode }: BoardProps) {
+export function Board({ columns, onTaskClick, sortMode, onAdd }: BoardProps) {
   const [reorderTask] = useReorderTaskMutation()
   const [bulkUpdate, { isLoading: isBulkUpdating }] = useBulkUpdateTasksMutation()
   const dispatch = useDispatch<AppDispatch>()
@@ -192,6 +193,7 @@ export function Board({ columns, onTaskClick, sortMode }: BoardProps) {
               selectedIds={selectedIds}
               isSelectionMode={isSelectionMode}
               onToggleSelect={toggleSelect}
+              onAdd={() => onAdd(col)}
             />
           ))}
         </div>
