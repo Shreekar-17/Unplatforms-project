@@ -1,5 +1,5 @@
 import { Task, Priority, Status, Activity, Comment } from '../features/tasks/types'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import {
   useUpdateTaskMutation,
@@ -10,21 +10,23 @@ import {
 import { useGetUsersQuery } from '../features/auth/authApi'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../features/auth/authSlice'
+import { TbAlertCircleFilled, TbArrowUpCircle, TbCircle, TbArrowDownCircle } from 'react-icons/tb'
+import { RichTextEditor } from './RichTextEditor'
 
 interface TaskDetailModalProps {
   task: Task
-  initialTab?: TabKey
+  initialTab?: TabKey // Keeping this prop for compatibility, but mapping it to sidebar view
   onClose: () => void
 }
 
 type TabKey = 'details' | 'comments' | 'activity'
-type ActivityFilter = 'all' | 'created' | 'updated' | 'moved' | 'commented'
+type SidebarView = 'comments' | 'activity'
 
-const priorityConfig: Record<Priority, { label: string; color: string; bg: string }> = {
-  P0: { label: 'Critical', color: 'text-red-400', bg: 'bg-red-500/15' },
-  P1: { label: 'High', color: 'text-amber-400', bg: 'bg-amber-500/15' },
-  P2: { label: 'Medium', color: 'text-blue-400', bg: 'bg-blue-500/15' },
-  P3: { label: 'Low', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+const priorityConfig: Record<Priority, { label: string; color: string; bg: string; icon: React.ReactElement }> = {
+  P0: { label: 'Critical', color: 'text-red-400', bg: 'bg-red-500/15', icon: <TbAlertCircleFilled /> },
+  P1: { label: 'High', color: 'text-amber-400', bg: 'bg-amber-500/15', icon: <TbArrowUpCircle /> },
+  P2: { label: 'Medium', color: 'text-blue-400', bg: 'bg-blue-500/15', icon: <TbCircle /> },
+  P3: { label: 'Low', color: 'text-emerald-400', bg: 'bg-emerald-500/15', icon: <TbArrowDownCircle /> },
 }
 
 const statusOptions: Status[] = ['Backlog', 'Ready', 'In Progress', 'Review', 'Done']
@@ -64,175 +66,226 @@ function describeActivity(activity: Activity): { icon: string; text: string; col
   const { type, payload } = activity
   switch (type) {
     case 'created':
-      return { icon: '🆕', text: 'Created this task', color: 'text-gray-400' }
+      return { icon: '🆕', text: 'created this task', color: 'text-gray-400' }
     case 'moved': {
       const from = payload.old_status || '—'
       const to = payload.new_status || '—'
-      return { icon: '➡️', text: `Moved from ${from} → ${to}` }
+      return { icon: '➡️', text: `moved this task from ${from} to ${to}` }
     }
     case 'updated': {
       const changes: string[] = []
-      if (payload.new_priority) {
-        const old = payload.old_priority || '—'
-        changes.push(`Changed priority ${old} → ${payload.new_priority}`)
-      }
-      if (payload.new_status) {
-        const old = payload.old_status || '—'
-        changes.push(`Changed status ${old} → ${payload.new_status}`)
-      }
-      if (payload.new_owner) {
-        changes.push(`Assigned to ${payload.new_owner}`)
-      }
-      if (payload.title) changes.push(`Updated title`)
-      if (payload.description) changes.push(`Updated description`)
-      if (payload.estimate !== undefined) changes.push(`Updated estimate`)
-      return { icon: '✏️', text: changes.length > 0 ? changes.join(', ') : 'Updated task' }
+      if (payload.new_priority) changes.push(`priority to ${payload.new_priority}`)
+      if (payload.new_status) changes.push(`status to ${payload.new_status}`)
+      if (payload.new_owner) changes.push(`assignee to ${payload.new_owner}`)
+      if (payload.title) changes.push(`title`)
+      if (payload.description) changes.push(`description`)
+      return { icon: '✏️', text: `updated a ${changes.join(', ')}` } // Grammar rough but readable
     }
     case 'commented':
-      return { icon: '💬', text: payload.body ? `"${payload.body}"` : 'Added a comment', color: 'text-gray-300' }
-    case 'bulk_updated':
-      return { icon: '📦', text: 'Bulk updated', color: 'text-gray-400' }
+      return { icon: '💬', text: 'commented', color: 'text-gray-300' }
     default:
       return { icon: '📌', text: `${type}`, color: 'text-gray-500' }
   }
 }
 
-// ... existing code ...
+// --- Components ---
 
-
-
-
-// --- Sub-components ---
-
-function DetailsTab({ task, onClose }: { task: Task; onClose: () => void }) {
-  const [updateTask, { isLoading }] = useUpdateTaskMutation()
+function TaskProperties({ task }: { task: Task }) {
+  const [updateTask] = useUpdateTaskMutation()
   const { data: users = [] } = useGetUsersQuery()
-  const [title, setTitle] = useState(task.title)
-  const [description, setDescription] = useState(task.description || '')
-  const [owner, setOwner] = useState(task.owner || '')
-  const [estimate, setEstimate] = useState(task.estimate?.toString() || '')
-  const [priority, setPriority] = useState<Priority>(task.priority)
-  const [status, setStatus] = useState<Status>(task.status)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSave = async () => {
-    setError(null)
-
-    // Validate owner
-    if (owner && !users.find((u) => u.username === owner)) {
-      setError(`User '${owner}' not found. Please select a valid user.`)
-      return
-    }
-
+  const handleUpdate = async (field: Partial<Task>) => {
     try {
       await updateTask({
         id: task.id,
-        body: {
-          title,
-          description: description || null,
-          owner: owner || null,
-          estimate: estimate ? parseInt(estimate) : null,
-          priority,
-          status,
-          if_match: task.version,
-        },
+        body: { ...field, if_match: task.version },
       }).unwrap()
-      onClose()
-    } catch (err: any) {
-      if (err?.status === 409) {
-        setError('This task was modified by someone else. Close and reopen to get the latest version.')
-      } else {
-        setError('Failed to save changes.')
-      }
+    } catch (err) {
+      console.error('Failed to update property', err)
     }
   }
 
   return (
-    <div className="flex flex-col flex-1">
-      <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">{error}</div>
-        )}
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition resize-none"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as Status)} className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none cursor-pointer">
-              {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+    <div className="flex flex-wrap gap-6 mb-8">
+      {/* Status */}
+      <div className="min-w-[120px]">
+        <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Status</h4>
+        <div className="relative">
+          <select
+            value={task.status}
+            onChange={(e) => handleUpdate({ status: e.target.value as Status })}
+            className="w-full appearance-none bg-board-card hover:bg-board-card-hover border border-board-border rounded px-2.5 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer transition font-medium pr-8"
+          >
+            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Priority</label>
-            <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none cursor-pointer">
-              {priorityOptions.map((p) => <option key={p} value={p}>{p} — {priorityConfig[p].label}</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Owner</label>
-            <input
-              type="text"
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              placeholder="Assign to..."
-              list="modal-users-list"
-              className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
-            />
-            <datalist id="modal-users-list">
-              {users.map((user) => (
-                <option key={user.id} value={user.username} />
-              ))}
-            </datalist>
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Estimate (hours)</label>
-            <input type="number" value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="0"
-              className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-[11px] text-gray-600 pt-2 border-t border-board-border">
-          <span>Created {new Date(task.created_at).toLocaleDateString()}</span>
-          <span>•</span>
-          <span>Updated {new Date(task.updated_at).toLocaleDateString()}</span>
-          <span>•</span>
-          <span>v{task.version}</span>
         </div>
       </div>
-      {/* Footer */}
-      <div className="px-5 py-3 border-t border-board-border flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-400 bg-board-card border border-board-border rounded-lg hover:bg-board-card-hover hover:text-gray-200 transition">
-          Cancel
-        </button>
-        <button onClick={handleSave} disabled={isLoading || !title.trim()}
-          className={clsx('px-5 py-2 text-sm font-medium text-white rounded-lg transition-all',
-            isLoading || !title.trim() ? 'bg-indigo-800 text-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 shadow-sm shadow-indigo-500/20'
-          )}>
-          {isLoading ? <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span> : 'Save Changes'}
-        </button>
+
+      {/* Priority */}
+      <div className="min-w-[120px]">
+        <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Priority</h4>
+        <div className="relative">
+          <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-base">
+            <span className={priorityConfig[task.priority].color}>{priorityConfig[task.priority].icon}</span>
+          </div>
+          <select
+            value={task.priority}
+            onChange={(e) => handleUpdate({ priority: e.target.value as Priority })}
+            className="w-full appearance-none bg-board-card hover:bg-board-card-hover border border-board-border rounded px-2.5 py-1.5 pl-8 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer transition font-medium pr-8"
+          >
+            {priorityOptions.map(p => (
+              <option key={p} value={p}>{priorityConfig[p].label}</option>
+            ))}
+          </select>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Assignee */}
+      <div className="min-w-[150px]">
+        <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Assignee</h4>
+        <div className="relative">
+          <input
+            type="text"
+            defaultValue={task.owner || ''}
+            onBlur={(e) => {
+              const newOwner = e.target.value
+              if (newOwner !== (task.owner || '')) {
+                if (newOwner && !users.find(u => u.username === newOwner)) {
+                  e.target.value = task.owner || ''
+                  return
+                }
+                handleUpdate({ owner: newOwner || null })
+              }
+            }}
+            list="sidebar-users-list"
+            className="w-full bg-board-card hover:bg-board-card-hover border border-board-border rounded px-2.5 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition placeholder-gray-500 font-medium"
+            placeholder="Unassigned"
+          />
+          <datalist id="sidebar-users-list">
+            {users.map(u => <option key={u.id} value={u.username} />)}
+          </datalist>
+        </div>
+      </div>
+
+      {/* Estimate */}
+      <div className="min-w-[100px]">
+        <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Estimate</h4>
+        <div className="relative">
+          <input
+            type="number"
+            defaultValue={task.estimate || ''}
+            onBlur={(e) => {
+              const val = e.target.value ? parseInt(e.target.value) : null
+              if (val !== task.estimate) {
+                handleUpdate({ estimate: val })
+              }
+            }}
+            className="w-full bg-board-card hover:bg-board-card-hover border border-board-border rounded px-2.5 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition placeholder-gray-500 font-medium"
+            placeholder="0h"
+          />
+        </div>
       </div>
     </div>
   )
 }
 
-function CommentsTab({ task }: { task: Task }) {
+function DescriptionSection({ task }: { task: Task }) {
+  const [updateTask, { isLoading }] = useUpdateTaskMutation()
+  const [isEditing, setIsEditing] = useState(false)
+  const [description, setDescription] = useState(task.description || '')
+
+  useEffect(() => {
+    setDescription(task.description || '')
+  }, [task.description])
+
+  const handleSave = async () => {
+    if (description === task.description) {
+      setIsEditing(false)
+      return
+    }
+    try {
+      await updateTask({
+        id: task.id,
+        body: { description, if_match: task.version },
+      }).unwrap()
+      setIsEditing(false)
+    } catch (err) {
+      console.error('Failed to update description', err)
+    }
+  }
+
+  const handleCancel = () => {
+    setDescription(task.description || '')
+    setIsEditing(false)
+  }
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-3 mb-3">
+        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+        <h3 className="text-base font-semibold text-gray-200">Description</h3>
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="px-2 py-1 text-xs font-medium text-gray-400 bg-board-card hover:bg-board-card-hover border border-board-border rounded transition ml-auto"
+          >
+            Edit
+          </button>
+        )}
+      </div>
+
+      <div className="pl-8">
+        {isEditing ? (
+          <div className="space-y-3">
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleCancel}
+                disabled={isLoading}
+                className="px-4 py-1.5 text-gray-400 hover:text-gray-200 text-sm font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded transition disabled:opacity-50"
+              >
+                {isLoading ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => setIsEditing(true)}
+            className="rounded-lg hover:bg-board-card transition cursor-text min-h-[60px] group relative border border-transparent hover:border-board-border/50"
+          >
+            {description ? (
+              <div className="pointer-events-none">
+                <RichTextEditor value={description} readOnly={true} onChange={() => { }} />
+              </div>
+            ) : (
+              <p className="text-gray-500 italic px-4 py-3">Add a description...</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function CommentsList({ task }: { task: Task }) {
   const { data: comments = [], isLoading } = useGetTaskCommentsQuery(task.id)
   const [createComment, { isLoading: isSending }] = useCreateCommentMutation()
   const [body, setBody] = useState('')
@@ -248,197 +301,152 @@ function CommentsTab({ task }: { task: Task }) {
       }).unwrap()
       setBody('')
     } catch (err) {
-      console.error('Failed to post comment:', err)
+      console.error('Failed to post comment', err)
     }
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      {/* Comment list */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-board-border border-t-indigo-500 rounded-full animate-spin" />
+    <div className="space-y-4">
+      {/* Input Area - Moved to top for Trello style */}
+      <div className="bg-board-card/20 p-3 rounded-xl border border-board-border/30">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+          placeholder="Write a comment..."
+          rows={1}
+          onClick={(e) => (e.target as HTMLTextAreaElement).rows = 3}
+          className="w-full bg-board-surface border border-board-border rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition resize-none placeholder-gray-500"
+        />
+        {body.trim() && (
+          <div className="mt-2 flex justify-end">
+            <button
+              onClick={handleSend}
+              disabled={isSending}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded transition disabled:opacity-50"
+            >
+              {isSending ? 'Sending...' : 'Save'}
+            </button>
           </div>
-        ) : comments.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-2xl mb-2">💬</div>
-            <p className="text-sm text-gray-500">No comments yet</p>
-            <p className="text-xs text-gray-600 mt-1">Start the conversation below</p>
-          </div>
-        ) : (
-          [...comments].reverse().map((comment) => (
-            <div key={comment.id} className="flex gap-3">
-              <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5', getAvatarColor(comment.actor))}>
-                {getInitials(comment.actor)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-gray-200">{comment.actor}</span>
-                  <span className="text-[11px] text-gray-600">{formatRelativeTime(comment.created_at)}</span>
-                </div>
-                <div className="bg-board-card border border-board-border rounded-lg px-3 py-2.5 text-sm text-gray-300 leading-relaxed">
-                  {comment.body}
-                </div>
-              </div>
-            </div>
-          ))
         )}
       </div>
 
-      {/* Comment input */}
-      <div className="px-5 py-3 border-t border-board-border">
-        <div className="flex gap-3">
-          <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0', getAvatarColor(currentUser?.username || 'U'))}>
-            {getInitials(currentUser?.username || 'U')}
-          </div>
-          <div className="flex-1 flex gap-2">
-            <input
-              type="text"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Add a comment..."
-              className="flex-1 rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
-            />
-            <button
-              onClick={handleSend}
-              disabled={isSending || !body.trim()}
-              className={clsx(
-                'px-4 py-2 text-sm font-medium rounded-lg transition-all',
-                isSending || !body.trim()
-                  ? 'bg-board-card text-gray-600 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-500'
-              )}
-            >
-              Send
-            </button>
-          </div>
-        </div>
+      {/* Comments Feed */}
+      <div className="space-y-4 max-h-[800px] overflow-y-auto pr-1">
+        {isLoading ? (
+          <div className="text-center py-4 text-gray-500 text-xs">Loading comments...</div>
+        ) : comments.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm italic">No comments yet.</div>
+        ) : (
+          [...comments]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map(comment => (
+              <div key={comment.id} className="flex gap-3 group">
+                <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5', getAvatarColor(comment.actor))}>
+                  {getInitials(comment.actor)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-sm font-semibold text-gray-200">{comment.actor}</span>
+                    <span className="text-[10px] text-gray-500">{formatRelativeTime(comment.created_at)}</span>
+                  </div>
+                  <div className="bg-board-card border border-board-border rounded-lg px-3 py-2 text-sm text-gray-300 leading-relaxed">
+                    {comment.body}
+                  </div>
+                </div>
+              </div>
+            ))
+        )}
       </div>
     </div>
   )
 }
 
-const ACTIVITY_LIMIT = 10
-
-function ActivityTab({ task }: { task: Task }) {
+function ActivitiesList({ task }: { task: Task }) {
   const [offset, setOffset] = useState(0)
+  const limit = 10
   const { data: activities = [], isLoading, isFetching } = useGetTaskActivitiesQuery({
     taskId: task.id,
-    limit: ACTIVITY_LIMIT,
+    limit,
     offset,
     exclude_type: 'commented',
   })
-  const [filter, setFilter] = useState<ActivityFilter>('all')
 
-  const filterOptions: { key: ActivityFilter; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'updated', label: 'Updates' },
-    { key: 'moved', label: 'Moves' },
-    { key: 'created', label: 'Created' },
-  ]
-
-  // No longer needed to filter comments client-side
-  const filtered = filter === 'all' ? activities : activities.filter((a) => a.type === filter)
-  const sorted = [...filtered].sort(
+  const sorted = [...activities].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
-
-  const hasMore = activities.length >= offset + ACTIVITY_LIMIT
+  const hasMore = activities.length >= offset + limit
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      {/* Filter bar */}
-      <div className="px-5 pt-4 pb-2 flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mr-1">Filter:</span>
-        {filterOptions.map((opt) => (
+    <div className="space-y-3 relative pt-2">
+      <div className="absolute left-[15px] top-2 bottom-2 w-px bg-board-border" />
+
+      {isLoading && offset === 0 ? (
+        <div className="text-center py-4 text-gray-500 text-xs">Loading activity...</div>
+      ) : sorted.length === 0 ? (
+        <div className="text-center py-4 text-gray-500 text-sm italic pl-4">No recent activity.</div>
+      ) : (
+        sorted.map(activity => {
+          const { icon, text } = describeActivity(activity)
+          return (
+            <div key={activity.id} className="flex gap-3 py-1 relative z-10">
+              <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center text-[12px] bg-board-bg border border-board-border flex-shrink-0')}>
+                {icon}
+              </div>
+              <div className="py-1 min-w-0">
+                <p className="text-sm text-gray-300">
+                  <span className="font-semibold text-gray-100">{activity.actor}</span> <span className="text-gray-400">{text}</span>
+                </p>
+                <p className="text-[10px] text-gray-600 mt-0.5">{formatRelativeTime(activity.created_at)}</p>
+              </div>
+            </div>
+          )
+        })
+      )}
+
+      {hasMore && (
+        <button
+          onClick={() => setOffset(prev => prev + limit)}
+          disabled={isFetching}
+          className="ml-11 text-xs text-indigo-400 hover:text-indigo-300 hover:underline disabled:opacity-50"
+        >
+          {isFetching ? 'Loading...' : 'Show older events'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ActivityPanel({ task }: { task: Task }) {
+  const [view, setView] = useState<SidebarView>('comments')
+
+  return (
+    <div className="bg-board-card/10 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6 px-1">
+        <div className="flex bg-board-card p-1 rounded-lg border border-board-border w-full">
           <button
-            key={opt.key}
-            onClick={() => setFilter(opt.key)}
+            onClick={() => setView('comments')}
             className={clsx(
-              'px-2.5 py-1 text-[11px] font-medium rounded-full transition-all',
-              filter === opt.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-board-card text-gray-400 hover:text-gray-200 border border-board-border'
+              "flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition text-center",
+              view === 'comments' ? "bg-board-surface text-white shadow-sm" : "text-gray-400 hover:text-gray-200"
             )}
           >
-            {opt.label}
+            Comments
           </button>
-        ))}
-        <div className="flex-1" />
-        <span className="text-[11px] text-gray-600">{sorted.length} entries</span>
+          <button
+            onClick={() => setView('activity')}
+            className={clsx(
+              "flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition text-center",
+              view === 'activity' ? "bg-board-surface text-white shadow-sm" : "text-gray-400 hover:text-gray-200"
+            )}
+          >
+            Activity
+          </button>
+        </div>
       </div>
 
-      {/* Activity list */}
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
-        {isLoading && offset === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-board-border border-t-indigo-500 rounded-full animate-spin" />
-          </div>
-        ) : sorted.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-2xl mb-2">📋</div>
-            <p className="text-sm text-gray-500">No activity found</p>
-            {filter !== 'all' && (
-              <button onClick={() => setFilter('all')} className="text-xs text-indigo-400 hover:text-indigo-300 mt-2">
-                Clear filter
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-[15px] top-4 bottom-4 w-px bg-board-border" />
-
-            <div className="space-y-1">
-              {sorted.map((activity) => {
-                const { icon, text, color } = describeActivity(activity)
-                const isComment = activity.type === 'commented'
-
-                return (
-                  <div key={activity.id} className="flex gap-3 py-2.5 relative">
-                    {/* Avatar */}
-                    <div className={clsx('w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 z-10', getAvatarColor(activity.actor))}>
-                      {getInitials(activity.actor)}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-gray-200">{activity.actor}</span>
-                        {activity.type === 'commented' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-medium">💬</span>
-                        )}
-                        <span className="text-[11px] text-gray-600 ml-auto flex-shrink-0">{formatRelativeTime(activity.created_at)}</span>
-                      </div>
-                      {isComment ? (
-                        <div className="bg-board-card border border-board-border rounded-lg px-3 py-2 text-sm text-gray-300 leading-relaxed mt-1">
-                          {text}
-                        </div>
-                      ) : (
-                        <p className={clsx('text-[13px]', color || 'text-gray-400')}>{text}</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="pt-4 text-center">
-                <button
-                  onClick={() => setOffset(prev => prev + ACTIVITY_LIMIT)}
-                  disabled={isFetching}
-                  className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-                >
-                  {isFetching ? 'Loading...' : 'Load older activities'}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {view === 'comments' ? <CommentsList task={task} /> : <ActivitiesList task={task} />}
       </div>
     </div>
   )
@@ -447,62 +455,81 @@ function ActivityTab({ task }: { task: Task }) {
 // --- Main Modal ---
 
 export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
+  const [updateTask] = useUpdateTaskMutation()
+  const [title, setTitle] = useState(task.title)
 
-  const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'details', label: 'Details', icon: '📝' },
-    { key: 'comments', label: 'Comments', icon: '💬' },
-    { key: 'activity', label: 'Activity', icon: '📋' },
-  ]
+  useEffect(() => {
+    setTitle(task.title)
+  }, [task.title])
+
+  const handleTitleBlur = async () => {
+    if (title.trim() && title !== task.title) {
+      try {
+        await updateTask({
+          id: task.id,
+          body: { title, if_match: task.version }
+        }).unwrap()
+      } catch (err) {
+        setTitle(task.title)
+      }
+    }
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
       <div
-        className="bg-board-surface border border-board-border rounded-xl shadow-2xl max-w-2xl w-full h-[75vh] flex flex-col"
+        className="bg-board-surface border border-board-border rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-board-border flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <h2 className="text-base font-semibold text-white truncate">{task.title}</h2>
-            <span className={clsx('text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', priorityConfig[task.priority].bg, priorityConfig[task.priority].color)}>
-              {priorityConfig[task.priority].label}
-            </span>
+        {/* Main Content Column (Left) */}
+        <div className="flex-1 flex flex-col min-w-0 bg-board-surface">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-500 mb-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span className="text-xs uppercase tracking-wider font-semibold">{task.id.slice(0, 8)}</span>
+              </div>
+              {/* Mobile Close Button (visible only on small screens if needed, otherwise rely on sidebar close) */}
+              <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-gray-100 p-2 hover:bg-board-card rounded-full transition">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="mr-8">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleBlur}
+                className="w-full bg-transparent text-3xl font-bold text-gray-100 focus:outline-none focus:bg-board-bg focus:ring-2 focus:ring-indigo-500 rounded px-2 -ml-2 transition py-1"
+              />
+              <div className="text-sm text-gray-400 mt-2 ml-1">
+                in list <span className="text-gray-300 font-medium underline decoration-gray-600 underline-offset-2">{task.status}</span>
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition p-1.5 rounded-lg hover:bg-board-card flex-shrink-0 ml-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-8 py-4">
+            <TaskProperties task={task} />
+            <div className="h-8" /> {/* Spacer */}
+            <DescriptionSection task={task} />
+          </div>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex border-b border-board-border flex-shrink-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={clsx(
-                'flex-1 px-4 py-2.5 text-sm font-medium transition-all relative',
-                activeTab === tab.key
-                  ? 'text-white'
-                  : 'text-gray-500 hover:text-gray-300'
-              )}
-            >
-              <span className="mr-1.5">{tab.icon}</span>
-              {tab.label}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-full" />
-              )}
+        {/* Sidebar Column (Right) */}
+        <div className="hidden lg:flex w-[400px] border-l border-board-border bg-board-bg/30 flex-col flex-shrink-0">
+          {/* Sidebar Header with Close Button */}
+          <div className="h-14 flex items-center justify-end px-4 border-b border-board-border/50">
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-100 p-2 hover:bg-board-card rounded-full transition">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-          ))}
-        </div>
+          </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-          {activeTab === 'details' && <DetailsTab task={task} onClose={onClose} />}
-          {activeTab === 'comments' && <CommentsTab task={task} />}
-          {activeTab === 'activity' && <ActivityTab task={task} />}
+          {/* Sidebar Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
+            <ActivityPanel task={task} />
+          </div>
         </div>
       </div>
     </div>

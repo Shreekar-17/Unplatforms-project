@@ -1,4 +1,4 @@
-import { Task, Priority, TabKey, User } from '../features/tasks/types'
+import { Task, Priority, TabKey } from '../features/tasks/types'
 import { useUpdateTaskMutation } from '../features/tasks/tasksApi'
 import { useGetUsersQuery } from '../features/auth/authApi'
 import { useSelector } from 'react-redux'
@@ -6,6 +6,8 @@ import { selectCurrentUser } from '../features/auth/authSlice'
 import clsx from 'clsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { useState, useRef, useEffect } from 'react'
+import { TbAlertCircleFilled, TbArrowUpCircle, TbCircle, TbArrowDownCircle } from 'react-icons/tb'
+import { RichTextEditor } from './RichTextEditor'
 
 interface TaskCardProps {
   task: Task
@@ -17,11 +19,11 @@ interface TaskCardProps {
   onToggleSelect?: (taskId: string) => void
 }
 
-const priorityConfig: Record<Task['priority'], { label: string; dotColor: string; bgColor: string; textColor: string }> = {
-  P0: { label: 'CRITICAL', dotColor: 'bg-red-500', bgColor: 'bg-red-500/15', textColor: 'text-red-400' },
-  P1: { label: 'HIGH', dotColor: 'bg-amber-500', bgColor: 'bg-amber-500/15', textColor: 'text-amber-400' },
-  P2: { label: 'MEDIUM', dotColor: 'bg-blue-500', bgColor: 'bg-blue-500/15', textColor: 'text-blue-400' },
-  P3: { label: 'LOW', dotColor: 'bg-emerald-500', bgColor: 'bg-emerald-500/15', textColor: 'text-emerald-400' },
+const priorityConfig: Record<Task['priority'], { label: string; color: string; bgColor: string; icon: React.ReactElement }> = {
+  P0: { label: 'CRITICAL', color: 'text-red-400', bgColor: 'bg-red-500/15', icon: <TbAlertCircleFilled /> },
+  P1: { label: 'HIGH', color: 'text-amber-400', bgColor: 'bg-amber-500/15', icon: <TbArrowUpCircle /> },
+  P2: { label: 'MEDIUM', color: 'text-blue-400', bgColor: 'bg-blue-500/15', icon: <TbCircle /> },
+  P3: { label: 'LOW', color: 'text-emerald-400', bgColor: 'bg-emerald-500/15', icon: <TbArrowDownCircle /> },
 }
 
 const PRIORITIES: Priority[] = ['P0', 'P1', 'P2', 'P3']
@@ -99,8 +101,8 @@ function PriorityDropdown({
               p === currentPriority && 'bg-board-card'
             )}
           >
-            <span className={clsx('w-2 h-2 rounded-full', cfg.dotColor)} />
-            <span className={cfg.textColor}>{cfg.label}</span>
+            <span className={clsx('text-base', cfg.color)}>{cfg.icon}</span>
+            <span className={cfg.color}>{cfg.label}</span>
             {p === currentPriority && <span className="ml-auto text-indigo-400">✓</span>}
           </button>
         )
@@ -167,7 +169,7 @@ function OwnerInput({
 // Custom Tooltip component
 function Tooltip({ children, content, delay = 500 }: { children: React.ReactNode; content: string; delay?: number }) {
   const [show, setShow] = useState(false)
-  const timer = useRef<NodeJS.Timeout>()
+  const timer = useRef<ReturnType<typeof setTimeout>>()
 
   const handleMouseEnter = () => {
     timer.current = setTimeout(() => setShow(true), delay)
@@ -300,12 +302,12 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
                 }}
                 className={clsx(
                   'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full transition-all',
-                  pConfig.bgColor, pConfig.textColor,
+                  pConfig.bgColor, pConfig.color,
                   'hover:ring-1 hover:ring-current/30'
                 )}
                 title="Click to change priority"
               >
-                <span className={clsx('w-1.5 h-1.5 rounded-full', pConfig.dotColor)} />
+                <span className="text-xs">{pConfig.icon}</span>
                 {pConfig.label}
               </button>
               {showPriorityDropdown && (
@@ -328,44 +330,14 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
             {task.title}
           </div>
 
-          {/* Assignee below task name */}
-          <div className="flex items-center gap-2 min-h-[20px]">
-            {showOwnerInput ? (
-              <OwnerInput
-                currentOwner={task.owner || ''}
-                onSubmit={handleOwnerChange}
-                onClose={() => setShowOwnerInput(false)}
-              />
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowOwnerInput(true)
-                }}
-                className="flex items-center gap-1.5 hover:bg-board-card-hover px-1.5 py-0.5 -ml-1.5 rounded transition group/owner"
-              >
-                {task.owner ? (
-                  <>
-                    <div className={clsx('w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white', getAvatarColor(task.owner))}>
-                      {getInitials(task.owner)}
-                    </div>
-                    <span className="text-[11px] text-gray-400 group-hover/owner:text-gray-300 transition-colors truncate max-w-[120px]">
-                      {task.owner}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-[11px] text-gray-600 group-hover/owner:text-gray-500 transition-colors">
-                    Assignee...
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
+
 
           {/* Description preview */}
           {task.description && (
-            <div className="text-[11px] text-gray-500 leading-relaxed line-clamp-2 mt-1">
-              {task.description}
+            <div className="text-[11px] text-gray-500 leading-relaxed mt-1 max-h-[60px] overflow-hidden relative pointer-events-none mask-image-b">
+              {/* Fade out effect */}
+              <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-board-card to-transparent z-10" />
+              <RichTextEditor value={task.description} readOnly={true} onChange={() => { }} className="!bg-transparent !border-0" />
             </div>
           )}
 
@@ -379,38 +351,36 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
             </div>
 
             <div className="flex items-center gap-1">
-              <Tooltip content="View Details" delay={500}>
+              {showOwnerInput ? (
+                <OwnerInput
+                  currentOwner={task.owner || ''}
+                  onSubmit={handleOwnerChange}
+                  onClose={() => setShowOwnerInput(false)}
+                />
+              ) : (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onClick?.('details') }}
-                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowOwnerInput(true)
+                  }}
+                  className="flex items-center gap-1.5 hover:bg-board-card-hover px-1.5 py-0.5 rounded transition group/owner"
                 >
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    <span className="text-base">📄</span>
-                  </div>
+                  {task.owner ? (
+                    <>
+                      <div className={clsx('w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white', getAvatarColor(task.owner))}>
+                        {getInitials(task.owner)}
+                      </div>
+                      <span className="text-[11px] text-gray-400 group-hover/owner:text-gray-300 transition-colors truncate max-w-[120px]">
+                        {task.owner}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-gray-600 group-hover/owner:text-gray-500 transition-colors">
+                      Assignee...
+                    </span>
+                  )}
                 </button>
-              </Tooltip>
-
-              <Tooltip content="Comments" delay={500}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onClick?.('comments') }}
-                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
-                >
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    <span className="text-base">💬</span>
-                  </div>
-                </button>
-              </Tooltip>
-
-              <Tooltip content="Activity" delay={500}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onClick?.('activity') }}
-                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
-                >
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    <span className="text-base">📋</span>
-                  </div>
-                </button>
-              </Tooltip>
+              )}
             </div>
           </div>
 

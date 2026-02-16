@@ -58,7 +58,7 @@ export function Column({ title, tasks, onTaskClick, color, isDragDisabled, sortM
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2 px-2 pb-4 min-h-[100px] rounded-lg transition-colors duration-200 ${snapshot.isDraggingOver ? 'column-drag-over' : ''
+            className={`space-y-2 px-2 pb-4 min-h-[100px] rounded-lg transition-colors duration-200 ${snapshot.isDraggingOver ? 'column-drag-over' : ''
               }`}
           >
             {sortedTasks.length === 0 ? (
