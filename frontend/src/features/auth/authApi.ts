@@ -22,9 +22,9 @@ interface LoginRequest {
   password: string;
 }
 
-interface TokenResponse {
-  access_token: string;
-  token_type: string;
+interface LoginResponse {
+  message: string;
+  user: User;
 }
 
 export const authApi = api.injectEndpoints({
@@ -36,7 +36,7 @@ export const authApi = api.injectEndpoints({
         body: data,
       }),
     }),
-    login: builder.mutation<TokenResponse, LoginRequest>({
+    login: builder.mutation<LoginResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
@@ -46,7 +46,10 @@ export const authApi = api.injectEndpoints({
     getMe: builder.query<User, void>({
       query: () => '/auth/me',
     }),
+    getUsers: builder.query<User[], void>({
+      query: () => '/auth/users',
+    }),
   }),
 });
 
-export const { useSignupMutation, useLoginMutation, useGetMeQuery } = authApi;
+export const { useSignupMutation, useLoginMutation, useGetMeQuery, useGetUsersQuery } = authApi;

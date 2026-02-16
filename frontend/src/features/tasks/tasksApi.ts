@@ -61,19 +61,58 @@ export const tasksApi = api.injectEndpoints({
           : [],
     }),
     // Per-task activities
-    getTaskActivities: build.query<Activity[], { taskId: string; limit?: number; offset?: number }>({
-      query: ({ taskId, limit = 50, offset = 0 }) => `/activities/task/${taskId}?limit=${limit}&offset=${offset}`,
+    getTaskActivities: build.query<Activity[], { taskId: string; limit?: number; offset?: number; exclude_type?: string }>({
+      query: ({ taskId, limit = 10, offset = 0, exclude_type }) => {
+        let url = `/activities/task/${taskId}?limit=${limit}&offset=${offset}`
+        if (exclude_type) url += `&exclude_type=${exclude_type}`
+        return url
+      },
+      serializeQueryArgs: ({ queryArgs }) => {
+        // Cache by taskId AND exclude_type to avoid mixing filtered/unfiltered lists
+        return `getTaskActivities(${queryArgs.taskId}-${queryArgs.exclude_type || 'all'})`
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (arg.offset === 0) {
+          // Reset cache on first page load/refresh
+          return newItems
+        }
+        return [...currentCache, ...newItems]
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        // Refetch if args change
+        return (
+          currentArg?.offset !== previousArg?.offset ||
+          currentArg?.taskId !== previousArg?.taskId ||
+          currentArg?.exclude_type !== previousArg?.exclude_type
+        )
+      },
       providesTags: (result, error, { taskId }) => [
         { type: 'Activity', id: taskId },
         { type: 'Activity', id: 'GLOBAL' },
       ],
     }),
     // Global activities (all tasks)
-    listAllActivities: build.query<Activity[], { limit?: number; offset?: number; type?: string | null }>({
-      query: ({ limit = 100, offset = 0, type }) => {
+    listAllActivities: build.query<Activity[], { limit?: number; offset?: number; type?: string | null; exclude_type?: string }>({
+      query: ({ limit = 20, offset = 0, type, exclude_type }) => {
         let url = `/activities/?limit=${limit}&offset=${offset}`
         if (type) url += `&type=${type}`
+        if (exclude_type) url += `&exclude_type=${exclude_type}`
         return url
+      },
+      serializeQueryArgs: ({ queryArgs }) => {
+        // Cache by type/exclude_type
+        return `listAllActivities(${queryArgs.type || 'all'}-${queryArgs.exclude_type || 'all'})`
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (arg.offset === 0) return newItems
+        return [...currentCache, ...newItems]
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return (
+          currentArg?.offset !== previousArg?.offset ||
+          currentArg?.type !== previousArg?.type ||
+          currentArg?.exclude_type !== previousArg?.exclude_type
+        )
       },
       providesTags: [{ type: 'Activity', id: 'GLOBAL' }],
     }),

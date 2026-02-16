@@ -7,6 +7,7 @@ import {
   useGetTaskCommentsQuery,
   useCreateCommentMutation,
 } from '../features/tasks/tasksApi'
+import { useGetUsersQuery } from '../features/auth/authApi'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../features/auth/authSlice'
 
@@ -59,11 +60,11 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function describeActivity(activity: Activity): { icon: string; text: string } {
+function describeActivity(activity: Activity): { icon: string; text: string; color?: string } {
   const { type, payload } = activity
   switch (type) {
     case 'created':
-      return { icon: '🆕', text: 'Created this task' }
+      return { icon: '🆕', text: 'Created this task', color: 'text-gray-400' }
     case 'moved': {
       const from = payload.old_status || '—'
       const to = payload.new_status || '—'
@@ -79,26 +80,33 @@ function describeActivity(activity: Activity): { icon: string; text: string } {
         const old = payload.old_status || '—'
         changes.push(`Changed status ${old} → ${payload.new_status}`)
       }
-      if (payload.new_owner) changes.push(`Assigned to ${payload.new_owner}`)
+      if (payload.new_owner) {
+        changes.push(`Assigned to ${payload.new_owner}`)
+      }
       if (payload.title) changes.push(`Updated title`)
       if (payload.description) changes.push(`Updated description`)
       if (payload.estimate !== undefined) changes.push(`Updated estimate`)
       return { icon: '✏️', text: changes.length > 0 ? changes.join(', ') : 'Updated task' }
     }
     case 'commented':
-      return { icon: '💬', text: payload.body ? `"${payload.body}"` : 'Added a comment' }
+      return { icon: '💬', text: payload.body ? `"${payload.body}"` : 'Added a comment', color: 'text-gray-300' }
     case 'bulk_updated':
-      return { icon: '📦', text: 'Bulk updated' }
+      return { icon: '📦', text: 'Bulk updated', color: 'text-gray-400' }
     default:
-      return { icon: '📌', text: `${type}` }
+      return { icon: '📌', text: `${type}`, color: 'text-gray-500' }
   }
 }
+
+// ... existing code ...
+
+
 
 
 // --- Sub-components ---
 
 function DetailsTab({ task, onClose }: { task: Task; onClose: () => void }) {
   const [updateTask, { isLoading }] = useUpdateTaskMutation()
+  const { data: users = [] } = useGetUsersQuery()
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
   const [owner, setOwner] = useState(task.owner || '')
@@ -109,6 +117,13 @@ function DetailsTab({ task, onClose }: { task: Task; onClose: () => void }) {
 
   const handleSave = async () => {
     setError(null)
+
+    // Validate owner
+    if (owner && !users.find((u) => u.username === owner)) {
+      setError(`User '${owner}' not found. Please select a valid user.`)
+      return
+    }
+
     try {
       await updateTask({
         id: task.id,
@@ -173,8 +188,19 @@ function DetailsTab({ task, onClose }: { task: Task; onClose: () => void }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Owner</label>
-            <input type="text" value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Assign to..."
-              className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition" />
+            <input
+              type="text"
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+              placeholder="Assign to..."
+              list="modal-users-list"
+              className="w-full rounded-lg bg-board-card border border-board-border px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition"
+            />
+            <datalist id="modal-users-list">
+              {users.map((user) => (
+                <option key={user.id} value={user.username} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="block text-[11px] font-medium text-gray-500 mb-1 uppercase tracking-wider">Estimate (hours)</label>
@@ -227,7 +253,7 @@ function CommentsTab({ task }: { task: Task }) {
   }
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Comment list */}
       <div className="flex-1 overflow-y-auto p-5 space-y-4">
         {isLoading ? (
@@ -294,25 +320,35 @@ function CommentsTab({ task }: { task: Task }) {
   )
 }
 
+const ACTIVITY_LIMIT = 10
+
 function ActivityTab({ task }: { task: Task }) {
-  const { data: activities = [], isLoading } = useGetTaskActivitiesQuery({ taskId: task.id })
+  const [offset, setOffset] = useState(0)
+  const { data: activities = [], isLoading, isFetching } = useGetTaskActivitiesQuery({
+    taskId: task.id,
+    limit: ACTIVITY_LIMIT,
+    offset,
+    exclude_type: 'commented',
+  })
   const [filter, setFilter] = useState<ActivityFilter>('all')
 
   const filterOptions: { key: ActivityFilter; label: string }[] = [
     { key: 'all', label: 'All' },
-    { key: 'commented', label: 'Comments' },
     { key: 'updated', label: 'Updates' },
     { key: 'moved', label: 'Moves' },
     { key: 'created', label: 'Created' },
   ]
 
+  // No longer needed to filter comments client-side
   const filtered = filter === 'all' ? activities : activities.filter((a) => a.type === filter)
   const sorted = [...filtered].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 
+  const hasMore = activities.length >= offset + ACTIVITY_LIMIT
+
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Filter bar */}
       <div className="px-5 pt-4 pb-2 flex items-center gap-2 flex-wrap">
         <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mr-1">Filter:</span>
@@ -336,7 +372,7 @@ function ActivityTab({ task }: { task: Task }) {
 
       {/* Activity list */}
       <div className="flex-1 overflow-y-auto px-5 pb-5">
-        {isLoading ? (
+        {isLoading && offset === 0 ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-6 h-6 border-2 border-board-border border-t-indigo-500 rounded-full animate-spin" />
           </div>
@@ -357,7 +393,7 @@ function ActivityTab({ task }: { task: Task }) {
 
             <div className="space-y-1">
               {sorted.map((activity) => {
-                const { icon, text } = describeActivity(activity)
+                const { icon, text, color } = describeActivity(activity)
                 const isComment = activity.type === 'commented'
 
                 return (
@@ -381,13 +417,26 @@ function ActivityTab({ task }: { task: Task }) {
                           {text}
                         </div>
                       ) : (
-                        <p className="text-[13px] text-gray-400">{text}</p>
+                        <p className={clsx('text-[13px]', color || 'text-gray-400')}>{text}</p>
                       )}
                     </div>
                   </div>
                 )
               })}
             </div>
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="pt-4 text-center">
+                <button
+                  onClick={() => setOffset(prev => prev + ACTIVITY_LIMIT)}
+                  disabled={isFetching}
+                  className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+                >
+                  {isFetching ? 'Loading...' : 'Load older activities'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

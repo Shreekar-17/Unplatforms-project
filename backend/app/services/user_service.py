@@ -50,3 +50,8 @@ async def authenticate_user(session: AsyncSession, username_or_email: str, passw
     if not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+async def get_users(session: AsyncSession) -> list[User]:
+    result = await session.execute(select(User))
+    return result.scalars().all()

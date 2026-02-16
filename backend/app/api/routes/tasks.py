@@ -61,6 +61,8 @@ async def update_task(
         task = await task_service.update_task(db, task_id, payload)
     except task_service.VersionConflictError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="stale version")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Build rich payload with old → new values
     changes = payload.model_dump(exclude_none=True, exclude={"if_match"})

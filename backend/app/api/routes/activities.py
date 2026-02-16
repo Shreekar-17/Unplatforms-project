@@ -20,11 +20,14 @@ async def list_all_activities(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     type: str | None = Query(None, description="Filter by activity type"),
+    exclude_type: str | None = Query(None, description="Exclude specific activity type"),
 ):
     """List all activities across all tasks, newest first."""
     stmt = select(Activity).order_by(Activity.created_at.desc())
     if type:
         stmt = stmt.where(Activity.type == type)
+    if exclude_type:
+        stmt = stmt.where(Activity.type != exclude_type)
     stmt = stmt.limit(limit).offset(offset)
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -36,10 +39,15 @@ async def list_task_activities(
     db: AsyncSession = Depends(get_db),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    exclude_type: str | None = Query(None, description="Exclude specific activity type"),
 ):
+    stmt = select(Activity).where(Activity.task_id == task_id)
+    
+    if exclude_type:
+        stmt = stmt.where(Activity.type != exclude_type)
+        
     result = await db.execute(
-        select(Activity)
-        .where(Activity.task_id == task_id)
+        stmt
         .order_by(Activity.created_at.desc(), Activity.activity_seq.desc())
         .limit(limit)
         .offset(offset)

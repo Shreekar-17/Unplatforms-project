@@ -46,7 +46,13 @@ async def update_task(session: AsyncSession, task_id: uuid.UUID, payload: TaskUp
     if payload.if_match != task.version:
         raise VersionConflictError("stale version")
 
-    for field, value in payload.model_dump(exclude_none=True, exclude={"if_match"}).items():
+    for field, value in payload.model_dump(exclude_unset=True, exclude={"if_match"}).items():
+        if field == "owner" and value is not None:
+             # Validate user exists
+             from app.services import user_service
+             user = await user_service.get_user_by_username(session, value)
+             if not user:
+                 raise ValueError(f"User '{value}' not found")
         setattr(task, field, value)
     task.bump_version()
     await session.flush()

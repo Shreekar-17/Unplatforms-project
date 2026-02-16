@@ -1,5 +1,6 @@
-import { Task, Priority, TabKey } from '../features/tasks/types'
+import { Task, Priority, TabKey, User } from '../features/tasks/types'
 import { useUpdateTaskMutation } from '../features/tasks/tasksApi'
+import { useGetUsersQuery } from '../features/auth/authApi'
 import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../features/auth/authSlice'
 import clsx from 'clsx'
@@ -118,8 +119,10 @@ function OwnerInput({
   onSubmit: (owner: string) => void
   onClose: () => void
 }) {
+  const { data: users = [] } = useGetUsersQuery()
   const [value, setValue] = useState(currentOwner)
   const ref = useRef<HTMLInputElement>(null)
+  const id = useRef(`users-list-${Math.random().toString(36).substr(2, 9)}`).current
 
   useEffect(() => {
     ref.current?.focus()
@@ -137,19 +140,27 @@ function OwnerInput({
   }, [value, onSubmit])
 
   return (
-    <input
-      ref={ref}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={(e) => {
-        e.stopPropagation()
-        if (e.key === 'Enter') onSubmit(value.trim())
-        if (e.key === 'Escape') onClose()
-      }}
-      onClick={(e) => e.stopPropagation()}
-      className="w-24 bg-board-surface border border-indigo-500/50 rounded px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-      placeholder="Assign..."
-    />
+    <>
+      <input
+        ref={ref}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation()
+          if (e.key === 'Enter') onSubmit(value.trim())
+          if (e.key === 'Escape') onClose()
+        }}
+        onClick={(e) => e.stopPropagation()}
+        list={id}
+        className="w-24 bg-board-surface border border-indigo-500/50 rounded px-2 py-1 text-[11px] text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+        placeholder="Assign..."
+      />
+      <datalist id={id}>
+        {users.map((user) => (
+          <option key={user.id} value={user.username} />
+        ))}
+      </datalist>
+    </>
   )
 }
 
@@ -205,11 +216,22 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
     }
   }
 
+  const { data: users = [] } = useGetUsersQuery()
+
   const handleOwnerChange = async (newOwner: string) => {
     setShowOwnerInput(false)
     if (newOwner === (task.owner || '')) return
+
+    // Validate user exists
+    if (newOwner && !users.find((u) => u.username === newOwner)) {
+      // Invalid user, do nothing (revert)
+      // Ideally we would show a toast here, but for now we just don't save
+      console.warn(`Invalid user: ${newOwner}`)
+      return
+    }
+
     try {
-      await updateTask({ id: task.id, body: { owner: newOwner || undefined, if_match: task.version } }).unwrap()
+      await updateTask({ id: task.id, body: { owner: newOwner || null, if_match: task.version } }).unwrap()
     } catch (err) {
       console.error('Failed to update owner:', err)
     }

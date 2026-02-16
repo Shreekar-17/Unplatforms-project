@@ -90,17 +90,43 @@ interface ActivityPageProps {
     onBack: () => void
 }
 
+const ACTIVITY_LIMIT = 20
+
 export default function ActivityPage({ onBack }: ActivityPageProps) {
     const { data: tasks = [] } = useListTasksQuery()
     const [filter, setFilter] = useState<ActivityFilter>('all')
-    const { data: activities = [], isLoading, isFetching } = useListAllActivitiesQuery({
-        limit: 200,
-        offset: 0,
-        type: filter === 'all' ? null : filter,
-    })
+    const [offset, setOffset] = useState(0)
+
+    // Determine query args
+    let queryArgs: {
+        limit: number
+        offset: number
+        type?: string | null
+        exclude_type?: string
+    }
+
+    if (filter === 'all') {
+        // Show everything BUT comments (unless user explicitly asks for comments, which is a separate filter)
+        queryArgs = { limit: ACTIVITY_LIMIT, offset, exclude_type: 'commented' }
+    } else if (filter === 'commented') {
+        // Show ONLY comments
+        queryArgs = { limit: ACTIVITY_LIMIT, offset, type: 'commented' }
+    } else {
+        // Show specific type (e.g. 'created', 'updated')
+        queryArgs = { limit: ACTIVITY_LIMIT, offset, type: filter }
+    }
+
+    const { data: activities = [], isLoading, isFetching } = useListAllActivitiesQuery(queryArgs)
+
+    const hasMore = activities.length >= offset + ACTIVITY_LIMIT
 
     // Build task lookup for showing task titles
     const taskMap = new Map(tasks.map((t) => [t.id, t]))
+
+    const handleFilterChange = (newFilter: ActivityFilter) => {
+        setFilter(newFilter)
+        setOffset(0)
+    }
 
     const filterOptions: { key: ActivityFilter; label: string; icon: string }[] = [
         { key: 'all', label: 'All Activity', icon: '📋' },
@@ -154,7 +180,7 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                         {filterOptions.map((opt) => (
                             <button
                                 key={opt.key}
-                                onClick={() => setFilter(opt.key)}
+                                onClick={() => handleFilterChange(opt.key)}
                                 className={clsx(
                                     'px-3 py-1.5 text-xs font-medium rounded-full transition-all flex items-center gap-1.5',
                                     filter === opt.key
@@ -263,6 +289,20 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                                 </div>
                             </div>
                         ))}
+
+
+                        {/* Load More Button */}
+                        {hasMore && (
+                            <div className="pt-8 text-center -ml-8">
+                                <button
+                                    onClick={() => setOffset(prev => prev + ACTIVITY_LIMIT)}
+                                    disabled={isFetching}
+                                    className="px-6 py-2 bg-board-card hover:bg-board-card-hover border border-board-border rounded-lg text-sm font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition"
+                                >
+                                    {isFetching ? 'Loading...' : 'Load older activities'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
