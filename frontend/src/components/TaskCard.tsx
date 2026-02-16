@@ -153,6 +153,33 @@ function OwnerInput({
   )
 }
 
+// Custom Tooltip component
+function Tooltip({ children, content, delay = 500 }: { children: React.ReactNode; content: string; delay?: number }) {
+  const [show, setShow] = useState(false)
+  const timer = useRef<NodeJS.Timeout>()
+
+  const handleMouseEnter = () => {
+    timer.current = setTimeout(() => setShow(true), delay)
+  }
+
+  const handleMouseLeave = () => {
+    if (timer.current) clearTimeout(timer.current)
+    setShow(false)
+  }
+
+  return (
+    <div className="relative flex items-center" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      {children}
+      {show && (
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-[10px] font-medium rounded shadow-lg whitespace-nowrap z-50 animate-in fade-in zoom-in-95 duration-200">
+          {content}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = false, isSelectionMode = false, onToggleSelect }: TaskCardProps) {
   const [updateTask] = useUpdateTaskMutation()
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
@@ -330,27 +357,38 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
             </div>
 
             <div className="flex items-center gap-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); onClick?.('details') }}
-                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
-                title="View Details"
-              >
-                <span className="text-[13px]">📄</span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onClick?.('comments') }}
-                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
-                title="Comments"
-              >
-                <span className="text-[13px]">💬</span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onClick?.('activity') }}
-                className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-board-card-hover rounded transition"
-                title="Activity"
-              >
-                <span className="text-[13px]">📋</span>
-              </button>
+              <Tooltip content="View Details" delay={500}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onClick?.('details') }}
+                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <span className="text-base">📄</span>
+                  </div>
+                </button>
+              </Tooltip>
+
+              <Tooltip content="Comments" delay={500}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onClick?.('comments') }}
+                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <span className="text-base">💬</span>
+                  </div>
+                </button>
+              </Tooltip>
+
+              <Tooltip content="Activity" delay={500}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onClick?.('activity') }}
+                  className="p-1.5 text-gray-400 hover:text-indigo-400 hover:bg-board-card-hover rounded-full transition-all duration-200 hover:scale-110"
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <span className="text-base">📋</span>
+                  </div>
+                </button>
+              </Tooltip>
             </div>
           </div>
 

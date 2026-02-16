@@ -409,7 +409,7 @@ export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskD
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-board-surface border border-board-border rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col"
+        className="bg-board-surface border border-board-border rounded-xl shadow-2xl max-w-2xl w-full h-[75vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
