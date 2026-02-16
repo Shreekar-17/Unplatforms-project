@@ -2,6 +2,7 @@ import { useListTasksQuery, useCreateTaskMutation } from '../features/tasks/task
 import { Task, Priority } from '../features/tasks/types'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import { selectCurrentUser, logout } from '../features/auth/authSlice'
 import { Board, SortMode } from './Board'
 import { TaskDetailModal } from './TaskDetailModal'
@@ -15,6 +16,7 @@ export default function BoardPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>('manual')
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const currentUser = useSelector(selectCurrentUser)
 
   const handleCreate = async () => {
@@ -94,6 +96,17 @@ export default function BoardPage() {
                   </button>
                 ))}
               </div>
+
+              <button
+                onClick={() => navigate('/activity')}
+                className="p-2 text-gray-500 hover:text-gray-300 hover:bg-board-card rounded-lg transition flex items-center gap-1.5"
+                title="Activity Feed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs hidden sm:inline">Activity</span>
+              </button>
 
               <button
                 onClick={() => refetch()}

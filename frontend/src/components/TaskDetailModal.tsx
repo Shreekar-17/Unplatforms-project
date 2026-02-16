@@ -64,17 +64,23 @@ function describeActivity(activity: Activity): { icon: string; text: string } {
     case 'created':
       return { icon: '🆕', text: 'Created this task' }
     case 'moved': {
-      const from = payload.old_status || payload.from || 'unknown'
-      const to = payload.new_status || payload.to || 'unknown'
+      const from = payload.old_status || '—'
+      const to = payload.new_status || '—'
       return { icon: '➡️', text: `Moved from ${from} → ${to}` }
     }
     case 'updated': {
       const changes: string[] = []
-      if (payload.priority) changes.push(`Changed priority to ${payload.priority}`)
-      if (payload.status) changes.push(`Changed status to ${payload.status}`)
-      if (payload.owner) changes.push(`Assigned to ${payload.owner}`)
+      if (payload.new_priority) {
+        const old = payload.old_priority || '—'
+        changes.push(`Changed priority ${old} → ${payload.new_priority}`)
+      }
+      if (payload.new_status) {
+        const old = payload.old_status || '—'
+        changes.push(`Changed status ${old} → ${payload.new_status}`)
+      }
+      if (payload.new_owner) changes.push(`Assigned to ${payload.new_owner}`)
       if (payload.title) changes.push(`Updated title`)
-      if (payload.description !== undefined) changes.push(`Updated description`)
+      if (payload.description) changes.push(`Updated description`)
       if (payload.estimate !== undefined) changes.push(`Updated estimate`)
       return { icon: '✏️', text: changes.length > 0 ? changes.join(', ') : 'Updated task' }
     }
@@ -86,6 +92,7 @@ function describeActivity(activity: Activity): { icon: string; text: string } {
       return { icon: '📌', text: `${type}` }
   }
 }
+
 
 // --- Sub-components ---
 

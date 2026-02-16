@@ -4,6 +4,7 @@ import { selectIsAuthenticated } from './features/auth/authSlice'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import BoardPage from './components/BoardPage'
+import ActivityPage from './components/ActivityPage'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
@@ -24,9 +25,18 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/activity"
+          element={
+            <ProtectedRoute>
+              <ActivityPage onBack={() => window.history.back()} />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   )
 }
 
 export default App
+
