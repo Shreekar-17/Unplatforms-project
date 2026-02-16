@@ -50,43 +50,7 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
                 <h1 className="text-lg font-bold text-white tracking-tight">TaskFlow</h1>
             </div>
 
-            {/* Quick Add Section */}
-            <div className="p-4 py-6 border-b border-board-border/50">
-                <div className="bg-board-card/30 rounded-lg p-3 space-y-3 border border-board-border/30 shadow-sm focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
-                    <input
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                        placeholder="Add new task..."
-                        className="w-full bg-transparent text-sm text-gray-100 placeholder-gray-500 focus:outline-none"
-                    />
-                    <div className="flex items-center gap-2 pt-2 border-t border-board-border/20">
-                        <div className="relative group">
-                            <select
-                                value={priority}
-                                onChange={(e) => setPriority(e.target.value as Priority)}
-                                className="bg-transparent text-[11px] font-medium text-gray-400 focus:outline-none cursor-pointer hover:text-indigo-400 transition uppercase tracking-wide appearance-none pr-4"
-                            >
-                                <option value="P0" className="bg-board-card text-red-400">Critical</option>
-                                <option value="P1" className="bg-board-card text-amber-400">High</option>
-                                <option value="P2" className="bg-board-card text-blue-400">Medium</option>
-                                <option value="P3" className="bg-board-card text-emerald-400">Low</option>
-                            </select>
-                            {/* Custom arrow for select */}
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600 group-hover:text-gray-400">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleCreate}
-                            disabled={!title.trim() || isCreating}
-                            className="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
-                        >
-                            {isCreating ? '...' : 'Add'}
-                        </button>
-                    </div>
-                </div>
-            </div>
+
 
             <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
                 {/* Main Nav */}
@@ -181,6 +145,46 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
                         </div>
                     </div>
                 )}
+                {/* Quick Add Section */}
+                <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+                        Quick Add
+                    </h3>
+                    <div className="bg-board-card/30 rounded-lg p-3 space-y-3 border border-board-border/30 shadow-sm focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
+                        <input
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                            placeholder="Add new task..."
+                            className="w-full bg-transparent text-sm text-gray-100 placeholder-gray-500 focus:outline-none"
+                        />
+                        <div className="flex items-center gap-2 pt-2 border-t border-board-border/20">
+                            <div className="relative group">
+                                <select
+                                    value={priority}
+                                    onChange={(e) => setPriority(e.target.value as Priority)}
+                                    className="bg-transparent text-[11px] font-medium text-gray-400 focus:outline-none cursor-pointer hover:text-indigo-400 transition uppercase tracking-wide appearance-none pr-4"
+                                >
+                                    <option value="P0" className="bg-board-card text-red-400">Critical</option>
+                                    <option value="P1" className="bg-board-card text-amber-400">High</option>
+                                    <option value="P2" className="bg-board-card text-blue-400">Medium</option>
+                                    <option value="P3" className="bg-board-card text-emerald-400">Low</option>
+                                </select>
+                                {/* Custom arrow for select */}
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600 group-hover:text-gray-400">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleCreate}
+                                disabled={!title.trim() || isCreating}
+                                className="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                            >
+                                {isCreating ? '...' : 'Add'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 

@@ -333,8 +333,8 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
 
 
           {/* Description preview */}
-          {task.description && (
-            <div className="text-[11px] text-gray-500 leading-relaxed mt-1 max-h-[60px] overflow-hidden relative pointer-events-none mask-image-b">
+          {task.description && task.status !== 'Done' && (
+            <div className="text-[11px] text-gray-500 leading-relaxed mt-1 max-h-[45px] overflow-hidden relative pointer-events-none mask-image-b">
               {/* Fade out effect */}
               <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-board-card to-transparent z-10" />
               <RichTextEditor value={task.description} readOnly={true} onChange={() => { }} className="!bg-transparent !border-0" />

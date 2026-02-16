@@ -1,13 +1,10 @@
 import { useListTasksQuery } from '../features/tasks/tasksApi'
 import { Task, Priority, Status, TabKey } from '../features/tasks/types'
 import { useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, useOutletContext } from 'react-router-dom'
-import { selectCurrentUser, logout } from '../features/auth/authSlice'
+import { useOutletContext } from 'react-router-dom'
 import { Board, SortMode } from './Board'
 import { TaskDetailModal } from './TaskDetailModal'
 import { CreateTaskModal } from './CreateTaskModal'
-import clsx from 'clsx'
 
 export default function BoardPage() {
   const { data: tasks = [], isLoading, isError, refetch } = useListTasksQuery()
@@ -15,12 +12,18 @@ export default function BoardPage() {
   const [initialTab, setInitialTab] = useState<TabKey>('details')
   const { sortMode } = useOutletContext<{ sortMode: SortMode }>()
   const [createModalStatus, setCreateModalStatus] = useState<Status | null>(null)
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
 
 
 
-  const columns: Record<string, Task[]> = tasks.reduce((acc: Record<string, Task[]>, task: Task) => {
+
+  const filteredTasks = tasks.filter(task =>
+    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    task.id.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const columns: Record<string, Task[]> = filteredTasks.reduce((acc: Record<string, Task[]>, task: Task) => {
     acc[task.status] = acc[task.status] || []
     acc[task.status].push(task)
     return acc
@@ -45,6 +48,8 @@ export default function BoardPage() {
             <input
               type="text"
               placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-board-card/50 hover:bg-board-card border border-transparent hover:border-board-border text-sm rounded-lg pl-9 pr-4 py-2 w-64 text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
             />
           </div>
