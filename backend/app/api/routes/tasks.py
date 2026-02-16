@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.models.task import Task
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, ReorderRequest
 from app.services import activity_service, task_service
 
 router = APIRouter()
@@ -56,19 +56,16 @@ async def update_task(task_id: uuid.UUID, payload: TaskUpdate, db: AsyncSession 
 @router.post("/{task_id}/reorder", response_model=TaskRead)
 async def reorder_task(
     task_id: uuid.UUID,
-    *,
-    new_status: str | None = None,
-    new_ordering_index: float,
-    if_match: int,
+    body: ReorderRequest,
     db: AsyncSession = Depends(get_db),
 ):
     try:
         task = await task_service.reorder_task(
             db,
             task_id,
-            new_status=new_status,
-            new_ordering_index=new_ordering_index,
-            if_match=if_match,
+            new_status=body.new_status,
+            new_ordering_index=body.new_ordering_index,
+            if_match=body.if_match,
         )
     except task_service.VersionConflictError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="stale version")
@@ -78,7 +75,7 @@ async def reorder_task(
         task_id=task.id,
         actor="system",
         type="moved",
-        payload={"new_status": new_status, "ordering_index": new_ordering_index},
+        payload={"new_status": body.new_status, "ordering_index": body.new_ordering_index},
     )
     await db.commit()
     await db.refresh(task)

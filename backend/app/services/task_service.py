@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Sequence
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,19 @@ async def list_tasks(session: AsyncSession) -> Sequence[Task]:
 
 
 async def create_task(session: AsyncSession, payload: TaskCreate) -> Task:
-    task = Task(**payload.model_dump())
+    # Auto-assign ordering_index at end of column if not explicitly set or is default
+    if payload.ordering_index == 0.0:
+        result = await session.execute(
+            select(func.coalesce(func.max(Task.ordering_index), 0.0)).where(
+                Task.status == payload.status
+            )
+        )
+        max_index = result.scalar_one()
+        payload_dict = payload.model_dump()
+        payload_dict["ordering_index"] = max_index + 1000.0
+    else:
+        payload_dict = payload.model_dump()
+    task = Task(**payload_dict)
     session.add(task)
     await session.flush()
     return task

@@ -46,3 +46,9 @@ class TaskRead(TaskBase):
 
     class Config:
         from_attributes = True
+
+
+class ReorderRequest(BaseModel):
+    new_status: Optional[str] = None
+    new_ordering_index: float
+    if_match: int
