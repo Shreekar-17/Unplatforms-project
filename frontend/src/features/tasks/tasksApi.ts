@@ -31,15 +31,40 @@ export const tasksApi = api.injectEndpoints({
         method: 'PATCH',
         body,
       }),
-      invalidatesTags: (result) =>
-        result
-          ? [
-            { type: 'Task', id: result.id },
-            { type: 'Task', id: 'LIST' },
-            { type: 'Activity', id: result.id },
-            { type: 'Activity', id: 'GLOBAL' },
-          ]
-          : [],
+      // Optimistically update the listTasks cache so the board reflects changes instantly
+      async onQueryStarted({ id, body }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          tasksApi.util.updateQueryData('listTasks', undefined, (draft) => {
+            const task = draft.find((t) => t.id === id)
+            if (task) {
+              // Apply each field from the update body to the cached task
+              const { if_match, ...fields } = body
+              Object.assign(task, fields)
+            }
+          })
+        )
+        try {
+          const { data: updatedTask } = await queryFulfilled
+          // Replace the optimistic data with the server's authoritative response
+          dispatch(
+            tasksApi.util.updateQueryData('listTasks', undefined, (draft) => {
+              const idx = draft.findIndex((t) => t.id === id)
+              if (idx !== -1) {
+                draft[idx] = updatedTask
+              }
+            })
+          )
+        } catch {
+          // Revert optimistic update on failure
+          patchResult.undo()
+        }
+      },
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Activity', id },
+        { type: 'Activity', id: 'GLOBAL' },
+      ],
     }),
     reorderTask: build.mutation<
       Task,

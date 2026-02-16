@@ -1,13 +1,12 @@
 import { Task, Priority, TabKey } from '../features/tasks/types'
 import { useUpdateTaskMutation } from '../features/tasks/tasksApi'
 import { useGetUsersQuery } from '../features/auth/authApi'
-import { useSelector } from 'react-redux'
-import { selectCurrentUser } from '../features/auth/authSlice'
 import clsx from 'clsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { useState, useRef, useEffect } from 'react'
 import { TbAlertCircleFilled, TbArrowUpCircle, TbCircle, TbArrowDownCircle } from 'react-icons/tb'
 import { RichTextEditor } from './RichTextEditor'
+import { useToast } from './Toast'
 
 interface TaskCardProps {
   task: Task
@@ -195,6 +194,7 @@ function Tooltip({ children, content, delay = 500 }: { children: React.ReactNode
 
 export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = false, isSelectionMode = false, onToggleSelect }: TaskCardProps) {
   const [updateTask] = useUpdateTaskMutation()
+  const { showToast } = useToast()
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
   const [showOwnerInput, setShowOwnerInput] = useState(false)
   const pConfig = priorityConfig[task.priority]
@@ -213,8 +213,11 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
     if (newPriority === task.priority) return
     try {
       await updateTask({ id: task.id, body: { priority: newPriority, if_match: task.version } }).unwrap()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update priority:', err)
+      if (err?.status === 412 || err?.status === 409) {
+        showToast('This task was updated by another user. Please refresh.', 'error')
+      }
     }
   }
 
@@ -234,8 +237,11 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
 
     try {
       await updateTask({ id: task.id, body: { owner: newOwner || null, if_match: task.version } }).unwrap()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update owner:', err)
+      if (err?.status === 412 || err?.status === 409) {
+        showToast('This task was updated by another user. Please refresh.', 'error')
+      }
     }
   }
 
@@ -337,7 +343,7 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
             <div className="text-[11px] text-gray-500 leading-relaxed mt-1 max-h-[45px] overflow-hidden relative pointer-events-none mask-image-b">
               {/* Fade out effect */}
               <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-board-card to-transparent z-10" />
-              <RichTextEditor value={task.description} readOnly={true} onChange={() => { }} className="!bg-transparent !border-0" />
+              <RichTextEditor key={task.version} value={task.description} readOnly={true} onChange={() => { }} className="!bg-transparent !border-0" />
             </div>
           )}
 

@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux'
 import { useState, useCallback } from 'react'
 import clsx from 'clsx'
 import type { AppDispatch } from '../store'
+import { useToast } from './Toast'
 
 export type SortMode = 'manual' | 'priority' | 'created'
 
@@ -77,6 +78,7 @@ export function Board({ columns, onTaskClick, sortMode, onAdd }: BoardProps) {
   const [reorderTask] = useReorderTaskMutation()
   const [bulkUpdate, { isLoading: isBulkUpdating }] = useBulkUpdateTasksMutation()
   const dispatch = useDispatch<AppDispatch>()
+  const { showToast } = useToast()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
 
@@ -157,9 +159,10 @@ export function Board({ columns, onTaskClick, sortMode, onAdd }: BoardProps) {
     } catch (err: any) {
       // Undo optimistic update
       patchResult.undo()
-      // If version conflict (409), refetch to get fresh data
-      if (err?.status === 409) {
+      // If version conflict (409/412), refetch to get fresh data
+      if (err?.status === 409 || err?.status === 412) {
         dispatch(tasksApi.util.invalidateTags([{ type: 'Task', id: 'LIST' }]))
+        showToast('This task was updated by another user. The board has been refreshed.', 'error')
       }
     }
   }

@@ -8,6 +8,7 @@ import BoardPage from './components/BoardPage'
 import ActivityPage from './components/ActivityPage'
 import MembersPage from './components/MembersPage'
 import { Layout } from './components/Layout'
+import { ToastProvider } from './components/Toast'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
@@ -51,21 +52,23 @@ function App() {
   return (
     <BrowserRouter>
       <AuthInitializer>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<BoardPage />} />
-            <Route path="/activity" element={<ActivityPage onBack={() => window.history.back()} />} />
-            <Route path="/members" element={<MembersPage />} />
-          </Route>
-        </Routes>
+        <ToastProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<BoardPage />} />
+              <Route path="/activity" element={<ActivityPage onBack={() => window.history.back()} />} />
+              <Route path="/members" element={<MembersPage />} />
+            </Route>
+          </Routes>
+        </ToastProvider>
       </AuthInitializer>
     </BrowserRouter>
   )

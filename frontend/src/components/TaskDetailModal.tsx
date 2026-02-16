@@ -12,6 +12,7 @@ import { useSelector } from 'react-redux'
 import { selectCurrentUser } from '../features/auth/authSlice'
 import { TbAlertCircleFilled, TbArrowUpCircle, TbCircle, TbArrowDownCircle } from 'react-icons/tb'
 import { RichTextEditor } from './RichTextEditor'
+import { useToast } from './Toast'
 
 interface TaskDetailModalProps {
   task: Task
@@ -93,6 +94,7 @@ function describeActivity(activity: Activity): { icon: string; text: string; col
 function TaskProperties({ task }: { task: Task }) {
   const [updateTask] = useUpdateTaskMutation()
   const { data: users = [] } = useGetUsersQuery()
+  const { showToast } = useToast()
 
   const handleUpdate = async (field: Partial<Task>) => {
     try {
@@ -100,8 +102,13 @@ function TaskProperties({ task }: { task: Task }) {
         id: task.id,
         body: { ...field, if_match: task.version },
       }).unwrap()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update property', err)
+      if (err?.status === 412 || err?.status === 409) {
+        showToast('This task was updated by another user. Please refresh.', 'error')
+      } else {
+        showToast('Failed to update properties', 'error')
+      }
     }
   }
 
@@ -199,6 +206,7 @@ function DescriptionSection({ task }: { task: Task }) {
   const [updateTask, { isLoading }] = useUpdateTaskMutation()
   const [isEditing, setIsEditing] = useState(false)
   const [description, setDescription] = useState(task.description || '')
+  const { showToast } = useToast()
 
   useEffect(() => {
     setDescription(task.description || '')
@@ -215,8 +223,13 @@ function DescriptionSection({ task }: { task: Task }) {
         body: { description, if_match: task.version },
       }).unwrap()
       setIsEditing(false)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update description', err)
+      if (err?.status === 412 || err?.status === 409) {
+        showToast('This task was updated by another user. Please refresh.', 'error')
+      } else {
+        showToast('Failed to update description', 'error')
+      }
     }
   }
 
@@ -273,7 +286,7 @@ function DescriptionSection({ task }: { task: Task }) {
           >
             {description ? (
               <div className="pointer-events-none">
-                <RichTextEditor value={description} readOnly={true} onChange={() => { }} />
+                <RichTextEditor key={description} value={description} readOnly={true} onChange={() => { }} />
               </div>
             ) : (
               <p className="text-gray-500 italic px-4 py-3">Add a description...</p>
@@ -457,6 +470,7 @@ function ActivityPanel({ task }: { task: Task }) {
 export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskDetailModalProps) {
   const [updateTask] = useUpdateTaskMutation()
   const [title, setTitle] = useState(task.title)
+  const { showToast } = useToast()
 
   useEffect(() => {
     setTitle(task.title)
@@ -469,8 +483,14 @@ export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskD
           id: task.id,
           body: { title, if_match: task.version }
         }).unwrap()
-      } catch (err) {
+      } catch (err: any) {
+        console.error('Failed to update title', err)
         setTitle(task.title)
+        if (err?.status === 412 || err?.status === 409) {
+          showToast('This task was updated by another user. Please refresh.', 'error')
+        } else {
+          showToast('Failed to update title', 'error')
+        }
       }
     }
   }

@@ -4,6 +4,7 @@ import { SortMode } from './Board'
 import { useState } from 'react'
 import { useCreateTaskMutation } from '../features/tasks/tasksApi'
 import { Priority } from '../features/tasks/types'
+import { useToast } from './Toast'
 
 interface SidebarProps {
     currentSort?: SortMode
@@ -26,6 +27,7 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
     const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
     const [title, setTitle] = useState('')
     const [priority, setPriority] = useState<Priority>('P2')
+    const { showToast } = useToast()
 
     const handleCreate = async () => {
         if (!title.trim()) return
@@ -33,8 +35,10 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
             await createTask({ title, priority }).unwrap()
             setTitle('')
             setPriority('P2')
+            showToast('Task created successfully', 'success')
         } catch (err) {
             console.error('Failed to create task', err)
+            showToast('Failed to create task', 'error')
         }
     }
 
@@ -65,8 +69,7 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
                                     'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                                     isActive
                                         ? 'bg-board-card text-yellow-500'
-                                        : 'text-gray-400 hover:text-gray-200 hover:bg-board-card/50',
-                                    item.disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
+                                        : 'text-gray-400 hover:text-gray-200 hover:bg-board-card/50'
                                 )}
                             >
                                 {/* Simple SVG icons */}
@@ -78,14 +81,8 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout }: Si
                                     {item.label === 'Timeline' && (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     )}
-                                    {item.label === 'Priority Queue' && (
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
-                                    )}
                                     {item.label === 'Members' && (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                    )}
-                                    {item.label === 'Settings' && (
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     )}
                                 </span>
                                 {item.label}

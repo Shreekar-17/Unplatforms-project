@@ -1,5 +1,5 @@
 import { useListTasksQuery } from '../features/tasks/tasksApi'
-import { Task, Priority, Status, TabKey } from '../features/tasks/types'
+import { Task, Status, TabKey } from '../features/tasks/types'
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Board, SortMode } from './Board'
@@ -8,12 +8,14 @@ import { CreateTaskModal } from './CreateTaskModal'
 
 export default function BoardPage() {
   const { data: tasks = [], isLoading, isError, refetch } = useListTasksQuery()
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [initialTab, setInitialTab] = useState<TabKey>('details')
   const { sortMode } = useOutletContext<{ sortMode: SortMode }>()
   const [createModalStatus, setCreateModalStatus] = useState<Status | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Always derive the selected task from the live query data (not a stale snapshot)
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) || null : null
 
 
 
@@ -80,7 +82,7 @@ export default function BoardPage() {
           <Board
             columns={columns}
             onTaskClick={(task, tab) => {
-              setSelectedTask(task)
+              setSelectedTaskId(task.id)
               setInitialTab(tab || 'details')
             }}
             sortMode={sortMode}
@@ -89,7 +91,7 @@ export default function BoardPage() {
         )}
       </div>
 
-      {selectedTask && <TaskDetailModal task={selectedTask} initialTab={initialTab} onClose={() => setSelectedTask(null)} />}
+      {selectedTask && <TaskDetailModal task={selectedTask} initialTab={initialTab} onClose={() => setSelectedTaskId(null)} />}
       {createModalStatus && (
         <CreateTaskModal
           initialStatus={createModalStatus}
