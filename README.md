@@ -25,6 +25,30 @@ A modern, priority-aware Kanban board application designed for teams. Features a
 - **Modern UI**: Polished dark theme with consistent iconography and responsive layout.
 - **Feedback**: specific toast notifications for success/error states.
 
+## Screenshots
+
+<div align="center">
+  <img src="docs/screenshots/board.png" alt="Kanban Board" width="800" />
+  <p><em>Interactive Kanban Board with Dark Mode</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/timeline.png" alt="Activity Feed" width="800" />
+  <p><em>Task Activity Timeline</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/addTask.png" alt="Add Task Modal" width="400" />
+  <img src="docs/screenshots/members.png" alt="Members Page" width="400" />
+  <p><em>Task Creation & Team Management</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/login.png" alt="Login Page" width="400" />
+  <img src="docs/screenshots/signup.png" alt="Signup Page" width="400" />
+  <p><em>Secure Authentication</em></p>
+</div>
+
 ## Quick Start
 
 ### 1. Backend & Database (Docker)
