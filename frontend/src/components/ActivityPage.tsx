@@ -33,12 +33,8 @@ function formatRelativeTime(dateStr: string): string {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-const activityTypeIcon: Record<string, string> = {
-    created: '🆕',
-    commented: '💬',
-    bulk_updated: '📦',
-    deleted: '🗑️',
-}
+import { TbClipboardText, TbMessage, TbPencil, TbArrowRight, TbPlus, TbTrash, TbPackages, TbActivity } from 'react-icons/tb'
+
 
 const activityTypeColor: Record<string, string> = {
     created: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
@@ -85,6 +81,15 @@ function describeActivity(activity: Activity): string {
     }
 }
 
+const activityTypeIcon: Record<string, React.ReactNode> = {
+    created: <TbPlus />,
+    commented: <TbMessage />,
+    bulk_updated: <TbPackages />,
+    deleted: <TbTrash />,
+    updated: <TbPencil />,
+    moved: <TbArrowRight />,
+}
+
 
 interface ActivityPageProps {
     onBack: () => void
@@ -128,12 +133,12 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
         setOffset(0)
     }
 
-    const filterOptions: { key: ActivityFilter; label: string; icon: string }[] = [
-        { key: 'all', label: 'All Activity', icon: '📋' },
-        { key: 'commented', label: 'Comments', icon: '💬' },
-        { key: 'updated', label: 'Updates', icon: '✏️' },
-        { key: 'moved', label: 'Moves', icon: '➡️' },
-        { key: 'created', label: 'Created', icon: '🆕' },
+    const filterOptions: { key: ActivityFilter; label: string; icon: React.ReactNode }[] = [
+        { key: 'all', label: 'All Activity', icon: <TbClipboardText /> },
+        { key: 'commented', label: 'Comments', icon: <TbMessage /> },
+        { key: 'updated', label: 'Updates', icon: <TbPencil /> },
+        { key: 'moved', label: 'Moves', icon: <TbArrowRight /> },
+        { key: 'created', label: 'Created', icon: <TbPlus /> },
     ]
 
     // Group activities by date
@@ -164,7 +169,10 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                         </button>
                         <div>
                             <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                                📋 Activity Feed
+                                <span className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">
+                                    <TbActivity className="w-5 h-5" />
+                                </span>
+                                Activity Feed
                                 {isFetching && (
                                     <span className="w-4 h-4 border-2 border-board-border border-t-indigo-500 rounded-full animate-spin" />
                                 )}
@@ -255,8 +263,8 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                                             <span className="text-[13px] font-medium text-gray-200">{activity.actor}</span>
-                                                            <span className={clsx('text-[10px] font-medium px-1.5 py-0.5 rounded-full border', typeColor)}>
-                                                                {activityTypeIcon[activity.type] || '📌'} {activity.type}
+                                                            <span className={clsx('text-[10px] font-medium px-1.5 py-0.5 rounded-full border inline-flex items-center gap-1 whitespace-nowrap', typeColor)}>
+                                                                {activityTypeIcon[activity.type] || '📌'} <span>{activity.type}</span>
                                                             </span>
                                                             <span className="text-[11px] text-gray-600 ml-auto flex-shrink-0">
                                                                 {formatRelativeTime(activity.created_at)}
@@ -289,7 +297,6 @@ export default function ActivityPage({ onBack }: ActivityPageProps) {
                                 </div>
                             </div>
                         ))}
-
 
                         {/* Load More Button */}
                         {hasMore && (

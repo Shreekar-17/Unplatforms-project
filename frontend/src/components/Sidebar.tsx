@@ -5,6 +5,17 @@ import { useState } from 'react'
 import { useCreateTaskMutation } from '../features/tasks/tasksApi'
 import { Priority, Status } from '../features/tasks/types'
 import { useToast } from './Toast'
+import {
+    TbLayoutKanban,
+    TbTimeline,
+    TbUsers,
+    TbTargetArrow,
+    TbHandStop,
+    TbFlame,
+    TbCalendarTime,
+    TbLogout,
+    TbLayoutSidebarLeftCollapse
+} from 'react-icons/tb'
 
 interface SidebarProps {
     currentSort?: SortMode
@@ -18,12 +29,10 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-    { label: 'Board', path: '/', icon: 'content_paste' },
-    { label: 'Timeline', path: '/activity', icon: 'schedule' },
-    { label: 'Members', path: '/members', icon: 'group' },
+    { label: 'Board', path: '/', icon: <TbLayoutKanban className="w-5 h-5" /> },
+    { label: 'Timeline', path: '/activity', icon: <TbTimeline className="w-5 h-5" /> },
+    { label: 'Members', path: '/members', icon: <TbUsers className="w-5 h-5" /> },
 ]
-
-
 
 export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOpen, onClose, isFocusMode, onToggleFocusMode }: SidebarProps) {
     const location = useLocation()
@@ -65,25 +74,21 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                     isOpen ? 'translate-x-0' : '-translate-x-full'
                 )}
             >
-                {/* Brand - hidden on mobile since we have a header, or we can keep it for consistency */}
-                <div className="h-16 flex items-center px-6 border-b border-board-border/50 md:flex hidden">
-                    <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center mr-3 shadow-lg shadow-yellow-500/20">
-                        <svg className="w-5 h-5 text-black" fill="bg-board-bg" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                        </svg>
+                {/* Brand */}
+                <div className="h-16 flex items-center px-6 border-b border-board-border/50 hidden md:flex">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mr-3 shadow-lg shadow-indigo-500/20">
+                        <TbLayoutKanban className="w-5 h-5 text-white" />
                     </div>
-                    <h1 className="text-lg font-bold text-white tracking-tight">TaskFlow</h1>
+                    <h1 className="text-lg font-bold text-white tracking-tight">Task Board</h1>
                 </div>
 
                 {/* Mobile Close Button Header */}
                 <div className="h-14 flex items-center justify-between px-4 border-b border-board-border/50 md:hidden">
                     <span className="font-bold text-lg text-white">Menu</span>
                     <button onClick={onClose} className="p-2 text-gray-400 hover:text-white">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        <TbLayoutSidebarLeftCollapse className="w-6 h-6" />
                     </button>
                 </div>
-
-
 
                 <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
                     {/* Main Nav */}
@@ -94,34 +99,22 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                 <Link
                                     key={item.label}
                                     to={item.path}
-                                    onClick={onClose} // Auto-close on mobile nav
+                                    onClick={onClose}
                                     className={clsx(
                                         'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                                         isActive
-                                            ? 'bg-board-card text-yellow-500'
+                                            ? 'bg-board-card text-indigo-400'
                                             : 'text-gray-400 hover:text-gray-200 hover:bg-board-card/50'
                                     )}
                                 >
-                                    {/* Simple SVG icons */}
                                     <span className="mr-3 opacity-80">
-                                        {/* Simplified icon logic for prototype; in real app use an icon content map or library */}
-                                        {item.label === 'Board' && (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                        )}
-                                        {item.label === 'Timeline' && (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        )}
-                                        {item.label === 'Members' && (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                        )}
+                                        {item.icon}
                                     </span>
                                     {item.label}
                                 </Link>
                             )
                         })}
                     </div>
-
-
 
                     {/* Sort Options */}
                     {currentSort && onSortChange && (
@@ -141,7 +134,9 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                             : 'bg-board-card text-gray-400 hover:text-white hover:bg-board-card-hover border border-board-border'
                                     )}
                                 >
-                                    <span className={clsx("transition-transform", isFocusMode && "scale-110")}>🎯</span>
+                                    <span className={clsx("transition-transform text-lg", isFocusMode && "scale-110")}>
+                                        <TbTargetArrow />
+                                    </span>
                                     {isFocusMode ? 'Focus Active' : 'Focus Mode'}
                                 </button>
                             </div>
@@ -155,10 +150,10 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                     )}
                                 >
                                     <span className="flex items-center">
-                                        <span className="mr-3 opacity-80">✋</span>
+                                        <span className="mr-3 opacity-80 text-lg"><TbHandStop /></span>
                                         Manual
                                     </span>
-                                    {currentSort === 'manual' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
+                                    {currentSort === 'manual' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
                                 </button>
                                 <button
                                     onClick={() => onSortChange('priority')}
@@ -168,10 +163,10 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                     )}
                                 >
                                     <span className="flex items-center">
-                                        <span className="mr-3 opacity-80">🔥</span>
+                                        <span className="mr-3 opacity-80 text-lg"><TbFlame /></span>
                                         Priority
                                     </span>
-                                    {currentSort === 'priority' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
+                                    {currentSort === 'priority' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
                                 </button>
                                 <button
                                     onClick={() => onSortChange('created')}
@@ -181,10 +176,10 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                     )}
                                 >
                                     <span className="flex items-center">
-                                        <span className="mr-3 opacity-80">📅</span>
+                                        <span className="mr-3 opacity-80 text-lg"><TbCalendarTime /></span>
                                         Date Created
                                     </span>
-                                    {currentSort === 'created' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
+                                    {currentSort === 'created' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
                                 </button>
                             </div>
                         </div>
@@ -255,19 +250,19 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                 <div className="p-4 border-t border-board-border">
                     {currentUser ? (
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center text-sm font-bold text-black border-2 border-board-surface cursor-pointer hover:opacity-90">
+                            <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-bold text-white border-2 border-board-surface cursor-pointer hover:opacity-90">
                                 {currentUser.username?.substring(0, 2).toUpperCase() || 'U'}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-white truncate">{currentUser.username || 'User'}</p>
                             </div>
                             <button onClick={onLogout} className="text-gray-500 hover:text-white transition-colors" title="Logout">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                <TbLogout className="w-5 h-5" />
                             </button>
                         </div>
                     ) : (
                         <div className="text-center">
-                            <Link to="/login" className="text-sm font-medium text-yellow-500 hover:underline">Log in</Link>
+                            <Link to="/login" className="text-sm font-medium text-indigo-400 hover:underline">Log in</Link>
                         </div>
                     )}
                 </div>

@@ -63,15 +63,17 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function describeActivity(activity: Activity): { icon: string; text: string; color?: string } {
+import { TbPlus, TbArrowRight, TbPencil, TbMessage, TbPinned } from 'react-icons/tb'
+
+function describeActivity(activity: Activity): { icon: React.ReactNode; text: string; color?: string } {
   const { type, payload } = activity
   switch (type) {
     case 'created':
-      return { icon: '🆕', text: 'created this task', color: 'text-gray-400' }
+      return { icon: <TbPlus />, text: 'created this task', color: 'text-gray-400' }
     case 'moved': {
       const from = payload.old_status || '—'
       const to = payload.new_status || '—'
-      return { icon: '➡️', text: `moved this task from ${from} to ${to}` }
+      return { icon: <TbArrowRight />, text: `moved this task from ${from} to ${to}` }
     }
     case 'updated': {
       const changes: string[] = []
@@ -80,12 +82,12 @@ function describeActivity(activity: Activity): { icon: string; text: string; col
       if (payload.new_owner) changes.push(`assignee to ${payload.new_owner}`)
       if (payload.title) changes.push(`title`)
       if (payload.description) changes.push(`description`)
-      return { icon: '✏️', text: `updated a ${changes.join(', ')}` } // Grammar rough but readable
+      return { icon: <TbPencil />, text: `updated a ${changes.join(', ')}` }
     }
     case 'commented':
-      return { icon: '💬', text: 'commented', color: 'text-gray-300' }
+      return { icon: <TbMessage />, text: 'commented', color: 'text-gray-300' }
     default:
-      return { icon: '📌', text: `${type}`, color: 'text-gray-500' }
+      return { icon: <TbPinned />, text: `${type}`, color: 'text-gray-500' }
   }
 }
 

@@ -18,9 +18,9 @@ export function Layout() {
     }
 
     return (
-        <div className="min-h-screen bg-board-bg text-gray-100 font-sans flex flex-col md:flex-row">
+        <div className="h-screen overflow-hidden bg-board-bg text-gray-100 font-sans flex flex-col md:flex-row">
             {/* Mobile Header */}
-            <div className="md:hidden h-14 bg-board-surface border-b border-board-border flex items-center justify-between px-4 sticky top-0 z-30">
+            <div className="md:hidden h-14 bg-board-surface border-b border-board-border flex items-center justify-between px-4 sticky top-0 z-30 shrink-0">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
@@ -30,7 +30,7 @@ export function Layout() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <span className="font-bold text-lg tracking-tight text-white">TaskFlow</span>
+                    <span className="font-bold text-lg tracking-tight text-white">Task Board</span>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-black border-2 border-board-surface">
                     {currentUser?.username?.substring(0, 2).toUpperCase() || 'U'}
@@ -47,7 +47,7 @@ export function Layout() {
                 isFocusMode={isFocusMode}
                 onToggleFocusMode={() => setIsFocusMode(!isFocusMode)}
             />
-            <div className="flex-1 md:ml-64 flex flex-col min-h-screen overflow-hidden">
+            <div className="flex-1 md:ml-64 flex flex-col h-full overflow-hidden">
                 <Outlet context={{ sortMode, setSortMode, isFocusMode }} />
             </div>
         </div>

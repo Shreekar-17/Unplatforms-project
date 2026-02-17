@@ -65,7 +65,7 @@ export default function Login() {
                 <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">TaskFlow</span>
+            <span className="text-xl font-bold text-white tracking-tight">Task Board</span>
           </div>
 
           <div className="bg-[#161b22]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl">

@@ -71,7 +71,7 @@ export default function BoardPage() {
       </header>
 
       {/* Kanban Board Area */}
-      <div className="flex-1 px-4 pb-4 overflow-x-auto overflow-y-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col relative">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

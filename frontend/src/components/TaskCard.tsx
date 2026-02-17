@@ -324,11 +324,7 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
                 />
               )}
             </div>
-            {tags.slice(0, 2).map((tag, i) => (
-              <span key={tag} className={clsx('text-[10px] font-medium px-2 py-0.5 rounded-full uppercase', tagColors[i % tagColors.length])}>
-                {tag}
-              </span>
-            ))}
+            {/* Labels removed as per request */}
           </div>
 
           {/* Title */}
@@ -340,10 +336,8 @@ export function TaskCard({ task, index, onClick, isDragDisabled, isSelected = fa
 
           {/* Description preview */}
           {task.description && task.status !== 'Done' && (
-            <div className="text-[11px] text-gray-500 leading-relaxed mt-1 max-h-[45px] overflow-hidden relative pointer-events-none mask-image-b">
-              {/* Fade out effect */}
-              <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-board-card to-transparent z-10" />
-              <RichTextEditor key={task.version} value={task.description} readOnly={true} onChange={() => { }} className="!bg-transparent !border-0" />
+            <div className="text-[11px] text-gray-400/80 leading-relaxed mt-1.5 line-clamp-2 font-medium break-words">
+              {task.description}
             </div>
           )}
 

@@ -213,7 +213,7 @@ export function Board({ columns, onTaskClick, sortMode, onAdd }: BoardProps) {
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex-1 flex gap-4 p-5 overflow-x-auto">
+        <div className="h-full flex-1 flex gap-6 p-6 overflow-x-auto overflow-y-hidden items-start">
           {COLUMN_ORDER.map((col) => (
             <Column
               key={col}
