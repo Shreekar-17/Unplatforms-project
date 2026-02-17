@@ -56,8 +56,14 @@ class ReorderRequest(BaseModel):
 
 class BulkUpdateRequest(BaseModel):
     task_ids: list[uuid.UUID]
+    versions: dict[uuid.UUID, int] = Field(default_factory=dict)
     status: Optional[Status] = None
     priority: Optional[Priority] = None
     owner: Optional[str] = None
     delete: bool = False
+
+
+class BulkUpdateResponse(BaseModel):
+    updated: list[TaskRead]
+    failed: list[dict]  # { "task_id": uuid, "error": str }
 

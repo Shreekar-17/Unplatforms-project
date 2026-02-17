@@ -15,8 +15,16 @@ class VersionConflictError(Exception):
     pass
 
 
-async def list_tasks(session: AsyncSession) -> Sequence[Task]:
-    result = await session.execute(select(Task).order_by(Task.status, Task.ordering_index, Task.id))
+async def list_tasks(session: AsyncSession, sort: str = "manual") -> Sequence[Task]:
+    query = select(Task)
+    if sort == "priority":
+        # Sort by Priority (P0 -> P3), then by Ordering Index
+        query = query.order_by(Task.priority, Task.ordering_index, Task.id)
+    else:
+        # Default manual sort
+        query = query.order_by(Task.status, Task.ordering_index, Task.id)
+    
+    result = await session.execute(query)
     return result.scalars().all()
 
 

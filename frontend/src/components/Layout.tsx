@@ -10,6 +10,7 @@ export function Layout() {
     const currentUser = useSelector(selectCurrentUser)
     const dispatch = useDispatch()
     const [sortMode, setSortMode] = useState<SortMode>('manual')
+    const [isFocusMode, setIsFocusMode] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const handleLogout = () => {
@@ -43,9 +44,11 @@ export function Layout() {
                 onLogout={handleLogout}
                 isOpen={isMobileMenuOpen}
                 onClose={() => setIsMobileMenuOpen(false)}
+                isFocusMode={isFocusMode}
+                onToggleFocusMode={() => setIsFocusMode(!isFocusMode)}
             />
             <div className="flex-1 md:ml-64 flex flex-col min-h-screen overflow-hidden">
-                <Outlet context={{ sortMode, setSortMode }} />
+                <Outlet context={{ sortMode, setSortMode, isFocusMode }} />
             </div>
         </div>
     )

@@ -10,15 +10,18 @@ from app.core.db import get_db
 from app.core.deps import get_current_user
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, ReorderRequest, BulkUpdateRequest
+from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, ReorderRequest, BulkUpdateRequest, BulkUpdateResponse
 from app.services import activity_service, task_service
 
 router = APIRouter()
 
 
 @router.get("/", response_model=list[TaskRead])
-async def list_tasks(db: AsyncSession = Depends(get_db)):
-    tasks = await task_service.list_tasks(db)
+async def list_tasks(
+    sort: str = "manual",
+    db: AsyncSession = Depends(get_db)
+):
+    tasks = await task_service.list_tasks(db, sort=sort)
     return tasks
 
 
@@ -138,23 +141,46 @@ async def reorder_task(
     return task
 
 
-@router.post("/bulk", response_model=list[TaskRead])
+@router.post("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_tasks(
     body: BulkUpdateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if not body.task_ids:
-        return []
+        return {"updated": [], "failed": []}
 
+    # Fetch all requested tasks
     result = await db.execute(select(Task).where(Task.id.in_(body.task_ids)))
     tasks = list(result.scalars().all())
 
     if not tasks:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No matching tasks found")
+        # If no tasks found, all requested IDs are technically "failed" (not found)
+        # But for simplicity, we can just return empty lists or error if strict.
+        # Let's return empty to be safe, or raise 404 if partial success isn't possible.
+        # Given "granular feedback", returning empty lists is safer than 404ing the whole batch.
+        return {"updated": [], "failed": [{"task_id": tid, "error": "Not found"} for tid in body.task_ids]}
 
-    if body.delete:
-        for task in tasks:
+    updated_tasks = []
+    failed_items = []
+
+    # Map for easy lookup
+    tasks_map = {t.id: t for t in tasks}
+
+    # Iterate through requested IDs to handle missing ones too
+    for task_id in body.task_ids:
+        task = tasks_map.get(task_id)
+        if not task:
+            failed_items.append({"task_id": task_id, "error": "Not found"})
+            continue
+
+        # Check version if provided
+        expected_version = body.versions.get(task_id)
+        if expected_version is not None and task.version != expected_version:
+            failed_items.append({"task_id": task_id, "error": "Conflict: Task has been modified by someone else"})
+            continue
+
+        if body.delete:
             await activity_service.log_activity(
                 db,
                 task_id=task.id,
@@ -163,12 +189,14 @@ async def bulk_update_tasks(
                 payload={"title": task.title},
             )
             await db.delete(task)
-        await db.commit()
-        return []
+            # For delete, we don't add to updated_tasks list usually, or we return the deleted object
+            # But the response model expects TaskRead. 
+            # If deleted, we can't return it easily as "updated".
+            # Let's assume bulk delete returns the deleted objects (before deletion state).
+            updated_tasks.append(task)
+            continue
 
-    # Apply updates
-    updated_tasks = []
-    for task in tasks:
+        # Apply updates
         changes: dict = {}
         if body.status is not None and body.status != task.status:
             changes["old_status"] = task.status
@@ -195,9 +223,13 @@ async def bulk_update_tasks(
         updated_tasks.append(task)
 
     await db.commit()
-    for task in updated_tasks:
-        await db.refresh(task)
-    return updated_tasks
+    
+    # Refresh updated tasks (skip deleted ones)
+    if not body.delete:
+        for task in updated_tasks:
+            await db.refresh(task)
+
+    return {"updated": updated_tasks, "failed": failed_items}
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

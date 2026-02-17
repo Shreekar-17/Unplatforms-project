@@ -7,10 +7,10 @@ import { TaskDetailModal } from './TaskDetailModal'
 import { CreateTaskModal } from './CreateTaskModal'
 
 export default function BoardPage() {
-  const { data: tasks = [], isLoading, isError, refetch } = useListTasksQuery()
+  const { sortMode, isFocusMode } = useOutletContext<{ sortMode: SortMode; isFocusMode: boolean }>()
+  const { data: tasks = [], isLoading, isError, refetch } = useListTasksQuery(sortMode === 'manual' ? undefined : sortMode)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [initialTab, setInitialTab] = useState<TabKey>('details')
-  const { sortMode } = useOutletContext<{ sortMode: SortMode }>()
   const [createModalStatus, setCreateModalStatus] = useState<Status | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -19,11 +19,23 @@ export default function BoardPage() {
 
 
 
-  const filteredTasks = tasks.filter(task =>
-    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    task.id.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredTasks = tasks.filter(task => {
+    // Search Filter
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      task.id.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+
+    // Focus Mode Filter
+    if (isFocusMode) {
+      const isHighPriority = task.priority === 'P0' || task.priority === 'P1'
+      const isActionable = task.status === 'Ready' || task.status === 'In Progress'
+      return isHighPriority && isActionable
+    }
+
+    return true
+  })
 
   const columns: Record<string, Task[]> = filteredTasks.reduce((acc: Record<string, Task[]>, task: Task) => {
     acc[task.status] = acc[task.status] || []

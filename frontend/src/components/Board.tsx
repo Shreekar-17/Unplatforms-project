@@ -104,14 +104,44 @@ export function Board({ columns, onTaskClick, sortMode, onAdd }: BoardProps) {
 
   const handleBulkAction = async (action: { status?: string; priority?: string; owner?: string; delete?: boolean }) => {
     if (selectedIds.size === 0) return
+
+    // Collect versions for concurrency check
+    const allTasks = Object.values(columns).flat()
+    const versions: Record<string, number> = {}
+    selectedIds.forEach(id => {
+      const task = allTasks.find(t => t.id === id)
+      if (task) versions[id] = task.version
+    })
+
     try {
-      await bulkUpdate({
+      const result = await bulkUpdate({
         task_ids: Array.from(selectedIds),
+        versions,
         ...action,
       }).unwrap()
+
       clearSelection()
+
+      // Show granular feedback
+      const successCount = result.updated.length
+      const failCount = result.failed.length
+
+      if (failCount === 0) {
+        showToast(`Successfully updated ${successCount} tasks`, 'success')
+      } else if (successCount === 0) {
+        showToast(`Failed to update ${failCount} tasks due to conflicts`, 'error')
+      } else {
+        showToast(`Updated ${successCount} tasks. ${failCount} failed due to conflicts`, 'error')
+      }
+
+      // If there were failures, we should probably refetch the list to get fresh versions
+      if (failCount > 0) {
+        dispatch(tasksApi.util.invalidateTags([{ type: 'Task', id: 'LIST' }]))
+      }
+
     } catch (err) {
       console.error('Bulk update failed:', err)
+      showToast('Bulk update failed', 'error')
     }
   }
 

@@ -7,8 +7,8 @@ type UpdatePayload = Partial<Pick<Task, 'title' | 'description' | 'status' | 'pr
 
 export const tasksApi = api.injectEndpoints({
   endpoints: (build) => ({
-    listTasks: build.query<Task[], void>({
-      query: () => '/tasks/',
+    listTasks: build.query<Task[], string | void>({
+      query: (sort) => sort ? `/tasks/?sort=${sort}` : '/tasks/',
       providesTags: (result: Task[] | undefined) =>
         result
           ? [
@@ -158,8 +158,8 @@ export const tasksApi = api.injectEndpoints({
       ],
     }),
     bulkUpdateTasks: build.mutation<
-      Task[],
-      { task_ids: string[]; status?: string; priority?: string; owner?: string; delete?: boolean }
+      { updated: Task[]; failed: { task_id: string; error: string }[] },
+      { task_ids: string[]; versions?: Record<string, number>; status?: string; priority?: string; owner?: string; delete?: boolean }
     >({
       query: (body) => ({
         url: '/tasks/bulk',

@@ -13,6 +13,8 @@ interface SidebarProps {
     onLogout: () => void
     isOpen?: boolean
     onClose?: () => void
+    isFocusMode?: boolean
+    onToggleFocusMode?: () => void
 }
 
 const NAV_ITEMS = [
@@ -23,7 +25,7 @@ const NAV_ITEMS = [
 
 
 
-export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOpen, onClose, isFocusMode, onToggleFocusMode }: SidebarProps) {
     const location = useLocation()
     const path = location.pathname
     const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
@@ -125,8 +127,25 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                     {currentSort && onSortChange && (
                         <div>
                             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
-                                Sort View
+                                View Options
                             </h3>
+
+                            {/* Focus Mode Toggle */}
+                            <div className="px-3 mb-4">
+                                <button
+                                    onClick={onToggleFocusMode}
+                                    className={clsx(
+                                        'w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold transition-all shadow-md',
+                                        isFocusMode
+                                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white ring-1 ring-white/20 shadow-indigo-500/20'
+                                            : 'bg-board-card text-gray-400 hover:text-white hover:bg-board-card-hover border border-board-border'
+                                    )}
+                                >
+                                    <span className={clsx("transition-transform", isFocusMode && "scale-110")}>🎯</span>
+                                    {isFocusMode ? 'Focus Active' : 'Focus Mode'}
+                                </button>
+                            </div>
+
                             <div className="space-y-1">
                                 <button
                                     onClick={() => onSortChange('manual')}
@@ -163,7 +182,7 @@ export function Sidebar({ currentSort, onSortChange, currentUser, onLogout, isOp
                                 >
                                     <span className="flex items-center">
                                         <span className="mr-3 opacity-80">📅</span>
-                                        Date
+                                        Date Created
                                     </span>
                                     {currentSort === 'created' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
                                 </button>
