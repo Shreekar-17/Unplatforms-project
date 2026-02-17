@@ -39,11 +39,11 @@ export default function BoardPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Top Header */}
-      <header className="px-8 py-5 flex items-center justify-between sticky top-0 z-20 bg-board-bg/95 backdrop-blur-sm border-b border-transparent">
+      <header className="px-4 md:px-8 py-3 md:py-5 flex flex-col md:flex-row md:items-center justify-between sticky top-0 z-20 bg-board-bg/95 backdrop-blur-sm border-b border-transparent gap-3 md:gap-0">
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           {/* Search placeholder */}
-          <div className="relative group hidden md:block">
+          <div className="relative group flex-1 md:flex-none">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="w-4 h-4 text-gray-500 group-hover:text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
@@ -52,11 +52,9 @@ export default function BoardPage() {
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-board-card/50 hover:bg-board-card border border-transparent hover:border-board-border text-sm rounded-lg pl-9 pr-4 py-2 w-64 text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
+              className="bg-board-card/50 hover:bg-board-card border border-transparent hover:border-board-border text-sm rounded-lg pl-9 pr-4 py-2 w-full md:w-64 text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all"
             />
           </div>
-
-
         </div>
       </header>
 

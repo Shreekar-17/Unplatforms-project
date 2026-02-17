@@ -471,6 +471,7 @@ export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskD
   const [updateTask] = useUpdateTaskMutation()
   const [title, setTitle] = useState(task.title)
   const { showToast } = useToast()
+  const [mobileTab, setMobileTab] = useState<'details' | 'activity'>('details')
 
   useEffect(() => {
     setTitle(task.title)
@@ -529,11 +530,39 @@ export function TaskDetailModal({ task, initialTab = 'details', onClose }: TaskD
             </div>
           </div>
 
+          {/* Mobile Tabs */}
+          <div className="flex items-center border-b border-board-border px-8 lg:hidden">
+            <button
+              onClick={() => setMobileTab('details')}
+              className={clsx(
+                "py-3 px-4 text-sm font-medium border-b-2 transition-colors",
+                mobileTab === 'details' ? "border-indigo-500 text-white" : "border-transparent text-gray-500"
+              )}
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setMobileTab('activity')}
+              className={clsx(
+                "py-3 px-4 text-sm font-medium border-b-2 transition-colors",
+                mobileTab === 'activity' ? "border-indigo-500 text-white" : "border-transparent text-gray-500"
+              )}
+            >
+              Activity & Comments
+            </button>
+          </div>
+
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-8 py-4">
-            <TaskProperties task={task} />
-            <div className="h-8" /> {/* Spacer */}
-            <DescriptionSection task={task} />
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4">
+            <div className={clsx("lg:block", mobileTab === 'details' ? 'block' : 'hidden')}>
+              <TaskProperties task={task} />
+              <div className="h-8" /> {/* Spacer */}
+              <DescriptionSection task={task} />
+            </div>
+
+            <div className={clsx("lg:hidden h-full", mobileTab === 'activity' ? 'block' : 'hidden')}>
+              <ActivityPanel task={task} />
+            </div>
           </div>
         </div>
 
